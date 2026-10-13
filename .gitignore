@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+!.env.example
+
+# job agent private data (personal details, drafts, tracker queue)
+/job-agent/MASTER_PROMPT.md
+/job-agent/queue/
+/job-agent/state/
+/job-agent/resumes/

@@ -1,0 +1,115 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import type { PostgrestError } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
+import {
+  ID_COLUMN,
+  TABLE,
+  USER_ID_COLUMN,
+  fromRow,
+  toRow,
+  type DbRow,
+  type JobApplication,
+  type JobFormValues,
+} from "./schema";
+
+function describeError(error: PostgrestError | Error): string {
+  if ("code" in error) {
+    if (error.code === "42501")
+      return "Permission denied by Row Level Security. Check the table's RLS policies.";
+    if (error.code === "42P01" || error.code === "PGRST205")
+      return "The job_applications table could not be found via the Data API.";
+    if (error.code === "42703" || error.code === "PGRST204")
+      return `Column mismatch: ${error.message}. The column mapping in src/lib/jobs/schema.ts needs updating.`;
+    if (error.code === "23505") return "This job link is already in your tracker.";
+    if (error.code === "23514")
+      return "The database rejected one of the values (check constraint). Run the latest SQL in the supabase folder.";
+  }
+  return error.message;
+}
+
+export type SyncResult = { files: number; inserted: number; updated: number; errors: string[] };
+
+/** Imports jobs queued by the job-hunting agent (local files) under the user's session. */
+async function syncAgentQueue(): Promise<SyncResult | null> {
+  try {
+    const res = await fetch("/api/tracker/sync", { method: "POST" });
+    return res.ok ? ((await res.json()) as SyncResult) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Loads and mutates the signed-in user's job applications. RLS scopes access. */
+export function useJobs() {
+  const [jobs, setJobs] = useState<JobApplication[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [sync, setSync] = useState<SyncResult | null>(null);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await syncAgentQueue();
+      // Keep the last non-empty result so a second, empty sync doesn't hide it.
+      if (result && (result.inserted || result.updated || result.errors.length)) setSync(result);
+      const { data, error } = await createClient().from(TABLE).select("*");
+      if (error) throw error;
+      setJobs((data as DbRow[]).map(fromRow));
+      setError(null);
+    } catch (e) {
+      setError(describeError(e as Error));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data load
+    void refresh();
+  }, [refresh]);
+
+  const createJob = useCallback(async (values: JobFormValues) => {
+    const supabase = createClient();
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) throw new Error("Your session has expired. Please sign in again.");
+    const { data, error } = await supabase
+      .from(TABLE)
+      .insert({ ...toRow(values), [USER_ID_COLUMN]: auth.user.id })
+      .select("*")
+      .single();
+    if (error) throw new Error(describeError(error));
+    const job = fromRow(data as DbRow);
+    setJobs((prev) => [job, ...prev]);
+    return job;
+  }, []);
+
+  const updateJob = useCallback(async (id: string, values: JobFormValues) => {
+    const { data, error } = await createClient()
+      .from(TABLE)
+      // The table has no trigger maintaining updated_at, so set it here.
+      .update({ ...toRow(values), updated_at: new Date().toISOString() })
+      .eq(ID_COLUMN, id)
+      .select("*")
+      .single();
+    if (error) throw new Error(describeError(error));
+    const job = fromRow(data as DbRow);
+    setJobs((prev) => prev.map((j) => (j.id === id ? job : j)));
+    return job;
+  }, []);
+
+  const deleteJob = useCallback(async (id: string) => {
+    const { data, error } = await createClient()
+      .from(TABLE)
+      .delete()
+      .eq(ID_COLUMN, id)
+      .select(ID_COLUMN);
+    if (error) throw new Error(describeError(error));
+    if (!data?.length)
+      throw new Error("Nothing was deleted. Row Level Security may not allow deleting this record.");
+    setJobs((prev) => prev.filter((j) => j.id !== id));
+  }, []);
+
+  return { jobs, loading, error, sync, refresh, createJob, updateJob, deleteJob };
+}
