@@ -158,11 +158,14 @@ async function runSync() {
   }
 
   // Refresh the snapshot the agent uses to skip jobs it has already handled.
-  const { data: known, error: snapshotError } = await supabase
-    .from(TABLE)
-    .select(
-      "normalized_job_url, link, job_posting_title, client_name, platform, status, posting_date, date_applied, email_subject, application_method, application_instructions, cover_letter, olj_points, expected_rate, approved_at, updated_at",
-    );
+  // Newer columns may not exist until their SQL has been run, so fall back to
+  // the core columns rather than leaving the snapshot stale.
+  const CORE = "normalized_job_url, link, job_posting_title, client_name, platform, status, posting_date, date_applied, updated_at";
+  const EXTENDED = `${CORE}, email_subject, application_method, application_instructions, cover_letter, olj_points, expected_rate, approved_at`;
+  let { data: known, error: snapshotError } = await supabase.from(TABLE).select(EXTENDED);
+  if (snapshotError) {
+    ({ data: known, error: snapshotError } = await supabase.from(TABLE).select(CORE));
+  }
   if (snapshotError) {
     errors.push(`Snapshot not updated: ${snapshotError.message}`);
   } else {
