@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { btn, card, input, label } from "@/components/ui";
+import { PasswordInput } from "@/components/password-input";
 
 const NOTICES: Record<string, { tone: "ok" | "warn"; text: string }> = {
   confirmed: { tone: "ok", text: "Your email is confirmed. You can sign in now." },
@@ -182,14 +183,12 @@ export function LoginForm() {
             Forgot password?
           </button>
         </div>
-        <input
+        <PasswordInput
           id="password"
-          type="password"
           autoComplete="current-password"
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className={input}
         />
       </div>
 

@@ -2,7 +2,8 @@
 
 import { useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { btn, input, label } from "./ui";
+import { PasswordInput } from "./password-input";
+import { btn, label } from "./ui";
 
 const MIN_LENGTH = 8;
 
@@ -54,29 +55,25 @@ export function NewPasswordForm({
         <label htmlFor="new-password" className={label}>
           New password
         </label>
-        <input
+        <PasswordInput
           id="new-password"
-          type="password"
           autoComplete="new-password"
           required
           minLength={MIN_LENGTH}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className={input}
         />
       </div>
       <div>
         <label htmlFor="confirm-password" className={label}>
           Confirm new password
         </label>
-        <input
+        <PasswordInput
           id="confirm-password"
-          type="password"
           autoComplete="new-password"
           required
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
-          className={input}
         />
       </div>
       {error && (
