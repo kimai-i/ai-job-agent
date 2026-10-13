@@ -40,7 +40,7 @@ export const DISCOVERY_TABS = [
     id: "review",
     label: "Ready for review",
     statuses: ["Pending Review", "Approved to Send"],
-    empty: "No drafts waiting. New ones arrive after each 3 AM / 3 PM search.",
+    empty: "No drafts waiting. New ones arrive overnight (searches run every 2 hours, 9 PM to 5 AM).",
   },
   {
     id: "action",
