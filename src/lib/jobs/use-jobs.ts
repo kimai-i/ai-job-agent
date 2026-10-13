@@ -35,11 +35,17 @@ export type SyncResult ={ files: number; inserted: number; updated: number; erro
 
 /** Imports jobs queued by the job-hunting agent (local files) under the user's session. */
 async function syncAgentQueue(): Promise<SyncResult | null> {
+  // Never let a slow import hold up the page: give up waiting after 20 s
+  // (the import itself keeps running on the server).
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20_000);
   try {
-    const res = await fetch("/api/tracker/sync", { method: "POST" });
+    const res = await fetch("/api/tracker/sync", { method: "POST", signal: controller.signal });
     return res.ok ? ((await res.json()) as SyncResult) : null;
   } catch {
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 

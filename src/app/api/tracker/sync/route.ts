@@ -68,7 +68,10 @@ function sanitize(input: Row): Row {
 let queueLock: Promise<unknown> = Promise.resolve();
 
 export async function POST() {
-  const run = queueLock.then(runSync, runSync);
+  // Wait for an in-flight import, but never more than 30 s, so one stuck
+  // import can't block every later request.
+  const previous = Promise.race([queueLock, new Promise((r) => setTimeout(r, 30_000))]);
+  const run = previous.then(runSync, runSync);
   queueLock = run.catch(() => {});
   return run;
 }
