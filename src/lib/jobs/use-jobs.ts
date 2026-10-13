@@ -153,5 +153,37 @@ export function useJobs() {
     return job;
   }, [refresh]);
 
-  return { jobs, loading, error, sync, refresh, createJob, updateJob, deleteJob, reviewJob };
+  /**
+   * Saves an edited subject / cover letter from the review card. An approval
+   * covers the exact text reviewed, so editing an approved draft sends it back
+   * to Pending Review.
+   */
+  const saveDraft = useCallback(async (job: JobApplication, draft: { email_subject: string; cover_letter: string }) => {
+    const now = new Date().toISOString();
+    const patch: DbRow = {
+      email_subject: draft.email_subject.trim() || null,
+      cover_letter: draft.cover_letter.trim() || null,
+      updated_at: now,
+    };
+    if (job.status === "Approved to Send") {
+      patch.status = "Pending Review";
+      patch.approved_at = null;
+    }
+    const { data, error } = await createClient()
+      .from(TABLE)
+      .update(patch)
+      .eq(ID_COLUMN, job.id)
+      .eq("status", job.status)
+      .select("*");
+    if (error) throw new Error(describeError(error));
+    if (!data?.length) {
+      await refresh();
+      throw new Error("This job's status changed in the meantime. The list has been refreshed.");
+    }
+    const updated = fromRow(data[0] as DbRow);
+    setJobs((prev) => prev.map((j) => (j.id === job.id ? updated : j)));
+    return updated;
+  }, [refresh]);
+
+  return { jobs, loading, error, sync, refresh, createJob, updateJob, deleteJob, reviewJob, saveDraft };
 }

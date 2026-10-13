@@ -5,8 +5,8 @@ import type { JobApplication } from "@/lib/jobs/schema";
 import { safeHref } from "@/lib/jobs/format";
 import type { ReviewDecision } from "@/lib/jobs/use-jobs";
 import { ConfirmDialog } from "./confirm-dialog";
-import { ExternalLinkIcon, SendIcon, XIcon } from "./icons";
-import { btn } from "./ui";
+import { ExternalLinkIcon, PencilIcon, SendIcon, XIcon } from "./icons";
+import { btn, input } from "./ui";
 
 export type { ReviewDecision };
 
@@ -51,12 +51,41 @@ function Field({ label, value }: { label: string; value: string }) {
 export function ReviewCard({
   job,
   onReview,
+  onSaveDraft,
 }: {
   job: JobApplication;
   onReview: (decision: ReviewDecision) => Promise<unknown>;
+  onSaveDraft?: (draft: { email_subject: string; cover_letter: string }) => Promise<unknown>;
 }) {
   const [confirming, setConfirming] = useState<ReviewDecision | null>(null);
   const [showNotes, setShowNotes] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draftSubject, setDraftSubject] = useState("");
+  const [draftLetter, setDraftLetter] = useState("");
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [draftError, setDraftError] = useState<string | null>(null);
+  const draftWords = draftLetter.trim() ? draftLetter.trim().split(/\s+/).length : 0;
+
+  function startEditing() {
+    setDraftSubject(text(job, "email_subject"));
+    setDraftLetter(text(job, "cover_letter"));
+    setDraftError(null);
+    setEditing(true);
+  }
+
+  async function saveEdits() {
+    if (!onSaveDraft) return;
+    setSavingDraft(true);
+    setDraftError(null);
+    try {
+      await onSaveDraft({ email_subject: draftSubject, cover_letter: draftLetter });
+      setEditing(false);
+    } catch (e) {
+      setDraftError((e as Error).message);
+    } finally {
+      setSavingDraft(false);
+    }
+  }
 
   const coverLetter = text(job, "cover_letter");
   const points = text(job, "olj_points");
@@ -73,10 +102,10 @@ export function ReviewCard({
               This approves this exact application to{" "}
               <span className="font-medium text-zinc-900 dark:text-zinc-100">{job.clientName || "the employer"}</span>{" "}
               on {job.platform}
-              {points ? `, using ${points} OLJ points` : ""}. It is submitted the next time you type{" "}
-              <span className="font-medium text-zinc-900 dark:text-zinc-100">&ldquo;send approved&rdquo;</span> in
-              Claude. Once it&rsquo;s sent and marked Applied, it moves from Job Discovery to Job Applications. If
-              anything on the posting has changed by then, it won&rsquo;t be sent and you&rsquo;ll be told why.
+              {points ? `, using ${points} OLJ points` : ""}. To submit it, either use{" "}
+              <span className="font-medium text-zinc-900 dark:text-zinc-100">Send it yourself</span> below (instant,
+              no Claude needed), or ask Claude to send your approved applications. Once it&rsquo;s sent and marked
+              Applied, it moves from Job Discovery to Job Applications.
             </>
           ),
           confirmLabel: "Send",
@@ -121,23 +150,84 @@ export function ReviewCard({
         )}
       </div>
 
-      <dl className="mt-3 space-y-3">
-        <Field label="Subject" value={text(job, "email_subject")} />
-        <Field label="Your asking rate" value={text(job, "expected_rate")} />
-        <Field label="Application method" value={text(job, "application_method")} />
-        <Field label="OLJ points" value={points} />
-        <Field label="Employer instructions" value={text(job, "application_instructions")} />
-      </dl>
-
-      {coverLetter ? (
-        <div className="mt-4">
-          <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Cover letter</p>
-          <div className="mt-1 rounded-lg border border-zinc-200 bg-white p-3 text-sm leading-relaxed whitespace-pre-wrap dark:border-zinc-700 dark:bg-zinc-900">
-            {coverLetter}
+      {editing ? (
+        <div className="mt-3 space-y-3">
+          <div>
+            <label htmlFor="review-subject" className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+              Subject
+            </label>
+            <input
+              id="review-subject"
+              className={`${input} mt-1`}
+              value={draftSubject}
+              onChange={(e) => setDraftSubject(e.target.value)}
+            />
+          </div>
+          <div>
+            <div className="flex items-baseline justify-between">
+              <label htmlFor="review-letter" className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                Cover letter
+              </label>
+              <span className="text-xs text-zinc-500 tabular-nums dark:text-zinc-400">{draftWords} words</span>
+            </div>
+            <textarea
+              id="review-letter"
+              rows={14}
+              className={`${input} mt-1 leading-relaxed`}
+              value={draftLetter}
+              onChange={(e) => setDraftLetter(e.target.value)}
+            />
+          </div>
+          {approved && (
+            <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
+              Saving edits moves this back to Pending Review so you can approve the new version.
+            </p>
+          )}
+          {draftError && (
+            <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+              {draftError}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <button type="button" className={btn.primary} onClick={saveEdits} disabled={savingDraft}>
+              {savingDraft ? "Saving…" : "Save changes"}
+            </button>
+            <button type="button" className={btn.secondary} onClick={() => setEditing(false)} disabled={savingDraft}>
+              Cancel
+            </button>
           </div>
         </div>
       ) : (
-        <p className="mt-4 text-sm text-amber-800 dark:text-amber-300">No cover letter was drafted for this job.</p>
+        <>
+          <dl className="mt-3 space-y-3">
+            <Field label="Subject" value={text(job, "email_subject")} />
+            <Field label="Your asking rate" value={text(job, "expected_rate")} />
+            <Field label="Application method" value={text(job, "application_method")} />
+            <Field label="OLJ points" value={points} />
+            <Field label="Employer instructions" value={text(job, "application_instructions")} />
+          </dl>
+
+          {coverLetter ? (
+            <div className="mt-4">
+              <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Cover letter</p>
+              <div className="mt-1 rounded-lg border border-zinc-200 bg-white p-3 text-sm leading-relaxed whitespace-pre-wrap dark:border-zinc-700 dark:bg-zinc-900">
+                {coverLetter}
+              </div>
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-amber-800 dark:text-amber-300">No cover letter was drafted for this job.</p>
+          )}
+
+          {onSaveDraft && (
+            <button
+              type="button"
+              className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+              onClick={startEditing}
+            >
+              <PencilIcon className="size-3.5" /> Edit subject &amp; cover letter
+            </button>
+          )}
+        </>
       )}
 
       {notes && (
@@ -161,8 +251,8 @@ export function ReviewCard({
         {approved ? (
           <>
             <p className="w-full text-sm text-zinc-600 dark:text-zinc-300">
-              Approved {approvedAt ? new Date(approvedAt).toLocaleString() : ""}. To submit it, type{" "}
-              <span className="font-medium">&ldquo;send approved&rdquo;</span> in Claude on your computer.
+              Approved {approvedAt ? new Date(approvedAt).toLocaleString() : ""}. Submit it with{" "}
+              <span className="font-medium">Send it yourself</span> below, or ask Claude to send it.
             </p>
             <button type="button" className={btn.secondary} onClick={() => setConfirming("cancel-send")}>
               <XIcon /> Cancel sending

@@ -39,12 +39,14 @@ export function JobDetailsPanel({
   onEdit,
   onDelete,
   onReview,
+  onSaveDraft,
 }: {
   job: JobApplication;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onReview?: (decision: ReviewDecision) => Promise<unknown>;
+  onSaveDraft?: (draft: { email_subject: string; cover_letter: string }) => Promise<unknown>;
 }) {
   const reviewable = job.status === "Pending Review" || job.status === "Approved to Send";
   useEffect(() => {
@@ -81,7 +83,7 @@ export function JobDetailsPanel({
         </div>
 
         <div className="flex-1 overflow-y-auto px-6">
-          {reviewable && onReview && <ReviewCard job={job} onReview={onReview} />}
+          {reviewable && onReview && <ReviewCard job={job} onReview={onReview} onSaveDraft={onSaveDraft} />}
           <dl className="divide-y divide-zinc-100 dark:divide-zinc-800">
             <Row label="Platform">{dash(job.platform)}</Row>
             <Row label="Date Applied">{dash(formatDate(job.dateApplied))}</Row>

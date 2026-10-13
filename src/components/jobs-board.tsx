@@ -39,7 +39,7 @@ type FormState = { mode: "create" } | { mode: "edit"; job: JobApplication } | nu
  * split into Ready for review / Needs action / Not pursued tabs.
  */
 export function JobsBoard({ mode }: { mode: "applications" | "discovery" }) {
-  const { jobs, loading, error, sync, refresh, createJob, updateJob, deleteJob, reviewJob } = useJobs();
+  const { jobs, loading, error, sync, refresh, createJob, updateJob, deleteJob, reviewJob, saveDraft } = useJobs();
   const discovery = mode === "discovery";
 
   const [query, setQuery] = useState("");
@@ -311,6 +311,7 @@ export function JobsBoard({ mode }: { mode: "applications" | "discovery" }) {
           onEdit={() => setForm({ mode: "edit", job: viewing })}
           onDelete={() => setDeleting(viewing)}
           onReview={(decision) => reviewJob(viewing.id, decision)}
+          onSaveDraft={(draft) => saveDraft(viewing, draft)}
         />
       )}
 
