@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { CLIENT_ACQUISITION, JOB_TYPES, PLATFORMS, STATUSES } from "@/lib/jobs/options";
-import type { JobApplication, JobFieldKey, JobFormValues } from "@/lib/jobs/schema";
+import type { DbRow, JobApplication, JobFieldKey, JobFormValues } from "@/lib/jobs/schema";
 import { todayIso } from "@/lib/jobs/format";
 import { Modal } from "./modal";
 import { btn, input, label } from "./ui";
@@ -20,6 +20,11 @@ const EMPTY: JobFormValues = {
   clientAcquisition: "",
 };
 
+function rawText(job: JobApplication | undefined, column: string): string {
+  const v = job?.raw[column];
+  return v === null || v === undefined ? "" : String(v);
+}
+
 /** Keeps a stored value selectable even if it's not one of the standard options. */
 function withCurrent(options: readonly string[], current: string) {
   return current && !options.includes(current) ? [...options, current] : options;
@@ -31,7 +36,7 @@ export function JobFormModal({
   onClose,
 }: {
   job?: JobApplication;
-  onSubmit: (values: JobFormValues) => Promise<unknown>;
+  onSubmit: (values: JobFormValues, extras: DbRow) => Promise<unknown>;
   onClose: () => void;
 }) {
   const [values, setValues] = useState<JobFormValues>(() => {
@@ -40,8 +45,16 @@ export function JobFormModal({
     for (const k of Object.keys(EMPTY) as JobFieldKey[]) v[k] = job[k];
     return v;
   });
+  const initialSubject = rawText(job, "email_subject");
+  const initialLetter = rawText(job, "cover_letter");
+  const [subject, setSubject] = useState(initialSubject);
+  const [coverLetter, setCoverLetter] = useState(initialLetter);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const draftChanged = subject !== initialSubject || coverLetter !== initialLetter;
+  const wasApproved = job?.status === "Approved to Send";
+  const words = coverLetter.trim() ? coverLetter.trim().split(/\s+/).length : 0;
 
   const set = (key: JobFieldKey) => (e: { target: { value: string } }) =>
     setValues((v) => ({ ...v, [key]: e.target.value }));
@@ -58,8 +71,19 @@ export function JobFormModal({
     }
     setBusy(true);
     setError(null);
+    const extras: DbRow = {};
+    let submitted = values;
+    if (draftChanged) {
+      extras.email_subject = subject.trim() || null;
+      extras.cover_letter = coverLetter.trim() || null;
+      // An approval covers the exact text Kim reviewed; edits need a fresh approval.
+      if (wasApproved && values.status === "Approved to Send") {
+        submitted = { ...values, status: "Pending Review" };
+        extras.approved_at = null;
+      }
+    }
     try {
-      await onSubmit(values);
+      await onSubmit(submitted, extras);
       onClose();
     } catch (err) {
       setError((err as Error).message);
@@ -179,6 +203,54 @@ export function JobFormModal({
         </div>
         {select("status", "Status", STATUSES)}
         {select("clientAcquisition", "Client Acquisition", CLIENT_ACQUISITION, true)}
+
+        <div className="border-t border-zinc-200 pt-4 sm:col-span-2 dark:border-zinc-800">
+          <p className="text-sm font-semibold">Application draft</p>
+          <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+            This exact text is what gets sent when you approve it.
+          </p>
+        </div>
+        <div className="sm:col-span-2">
+          <label htmlFor="emailSubject" className={label}>
+            Subject
+          </label>
+          <input
+            id="emailSubject"
+            className={input}
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            placeholder="Application for [Job Title] | Kim Bandola"
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <div className="mb-1.5 flex items-baseline justify-between">
+            <label htmlFor="coverLetter" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Cover Letter
+            </label>
+            <span
+              className={`text-xs tabular-nums ${
+                words && (words < 150 || words > 250) ? "text-amber-700 dark:text-amber-300" : "text-zinc-500 dark:text-zinc-400"
+              }`}
+            >
+              {words} words{words ? " (aim for 150–250)" : ""}
+            </span>
+          </div>
+          <textarea
+            id="coverLetter"
+            rows={14}
+            className={`${input} leading-relaxed`}
+            value={coverLetter}
+            onChange={(e) => setCoverLetter(e.target.value)}
+            placeholder="Write or paste the cover letter for this job…"
+          />
+          {wasApproved && draftChanged && (
+            <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
+              You already approved this application. Saving these edits moves it back to Pending Review, so you can
+              approve the new version with Send.
+            </p>
+          )}
+        </div>
+
         {error && (
           <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 sm:col-span-2 dark:bg-rose-500/10 dark:text-rose-300">
             {error}

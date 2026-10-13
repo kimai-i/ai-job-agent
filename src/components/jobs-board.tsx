@@ -317,7 +317,9 @@ export function JobsBoard({ mode }: { mode: "applications" | "discovery" }) {
       {form && (
         <JobFormModal
           job={form.mode === "edit" ? form.job : undefined}
-          onSubmit={(values) => (form.mode === "edit" ? updateJob(form.job.id, values) : createJob(values))}
+          onSubmit={(values, extras) =>
+            form.mode === "edit" ? updateJob(form.job.id, values, extras) : createJob(values, extras)
+          }
           onClose={() => setForm(null)}
         />
       )}

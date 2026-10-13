@@ -70,13 +70,13 @@ export function useJobs() {
     void refresh();
   }, [refresh]);
 
-  const createJob = useCallback(async (values: JobFormValues) => {
+  const createJob = useCallback(async (values: JobFormValues, extras: DbRow = {}) => {
     const supabase = createClient();
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) throw new Error("Your session has expired. Please sign in again.");
     const { data, error } = await supabase
       .from(TABLE)
-      .insert({ ...toRow(values), [USER_ID_COLUMN]: auth.user.id })
+      .insert({ ...toRow(values), ...extras, [USER_ID_COLUMN]: auth.user.id })
       .select("*")
       .single();
     if (error) throw new Error(describeError(error));
@@ -85,11 +85,12 @@ export function useJobs() {
     return job;
   }, []);
 
-  const updateJob = useCallback(async (id: string, values: JobFormValues) => {
+  /** `extras` carries non-list columns edited in the form (cover letter, subject). */
+  const updateJob = useCallback(async (id: string, values: JobFormValues, extras: DbRow = {}) => {
     const { data, error } = await createClient()
       .from(TABLE)
       // The table has no trigger maintaining updated_at, so set it here.
-      .update({ ...toRow(values), updated_at: new Date().toISOString() })
+      .update({ ...toRow(values), ...extras, updated_at: new Date().toISOString() })
       .eq(ID_COLUMN, id)
       .select("*")
       .single();
