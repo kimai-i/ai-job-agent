@@ -24,6 +24,7 @@ export const STATUSES = [
   "Pending Review",
   "Submission Failed",
   "Applied",
+  "Employer Replied",
   "Interview Scheduled",
   "Rejected",
   "Offer Received",
@@ -37,6 +38,7 @@ export const CLIENT_ACQUISITION = ["Honoring", "Partnership", "Referral", "B2B"]
 /** Statuses that mean the application has actually been sent. */
 export const SUBMITTED_STATUSES: readonly string[] = [
   "Applied",
+  "Employer Replied",
   "Interview Scheduled",
   "Rejected",
   "Offer Received",
@@ -97,6 +99,10 @@ export const STATUS_STYLES: Record<string, { badge: string; bar: string }> = {
     bar: "bg-red-600",
   },
   "Screened Out": { badge: NEUTRAL, bar: "bg-zinc-300 dark:bg-zinc-600" },
+  "Employer Replied": {
+    badge: "bg-lime-50 text-lime-800 ring-lime-600/20 dark:bg-lime-500/10 dark:text-lime-300 dark:ring-lime-400/30",
+    bar: "bg-lime-500",
+  },
 };
 
 export const ACQUISITION_STYLES: Record<string, string> = {

@@ -31,6 +31,49 @@ summary: jobs reviewed, ready for review (with match scores), needing
 information, video required, external applications, screened out. If a login,
 CAPTCHA or security check appears, stop that platform and report it.
 
+**Reply check** (hourly scheduled task, user may be away): look for employer
+replies to applications that were already sent, update their status, and notify
+Kim. Read only: never reply, never click Accept or Decline, never delete, archive,
+label or mark anything, never schedule interviews.
+1. Read `job-agent/state/known-jobs.json`. The jobs to watch are those with a
+   status of Applied, Employer Replied, Interview Scheduled or Offer Received.
+   Read `job-agent/state/reply-check.json` (create it if missing) for
+   `last_checked_at` and the list of already-processed message ids.
+2. Check, in her Chrome (the profile signed in with her personal Gmail address
+   from MASTER_PROMPT.md):
+   - OnlineJobs.ph messages: `https://www.onlinejobs.ph/message`
+   - Gmail for that personal address: `https://mail.google.com/mail/` (switch to
+     that account if another one is shown)
+     Search for new mail since the last check that mentions a watched
+     employer or job title, or replies to one of the application subjects. The
+     Gmail connector in this app is a different (work) account: do not use it.
+   - LinkedIn messages: `https://www.linkedin.com/messaging/`
+   If a site is signed out or shows a security check, skip it and report that.
+3. Match each new message to one watched job (employer name, job title, subject,
+   OLJ conversation). If the match is uncertain, don't change any status; just
+   report it.
+4. Pick the status from what the message actually says:
+   - Interview or call invitation → `Interview Scheduled`. Put the date and time
+     in the summary if they are given; if not, ask for her availability.
+   - Rejection → `Rejected`
+   - Job offer → `Offer Received` (never accept it)
+   - Anything else that needs her action (questions, test, video, documents,
+     rate discussion) → `Employer Replied`
+   Never move a job backwards: don't go from Interview Scheduled or Offer
+   Received back to Employer Replied unless the new message clearly says so.
+5. Queue the update: same `platform`, `job_posting_title` and `link` as in the
+   snapshot, plus `status`, `last_reply_at` (ISO time with offset),
+   `last_reply_channel` (OnlineJobs.ph, Gmail or LinkedIn) and
+   `last_reply_summary` (1 to 3 factual sentences, no quotes of personal data).
+   Then save the processed message ids and `last_checked_at` to `reply-check.json`.
+6. Sync: make sure the local app is running (`preview_start` with name `dev`),
+   then open `http://localhost:3000/applications` in the built-in browser pane
+   (signed in) to import the queue. Report the sync result.
+7. If there is at least one new reply, call `PushNotification` once with a short
+   summary under 200 characters, e.g. "The Scale Space replied on OLJ: wants a
+   call. Status → Interview Scheduled. 1 more reply in tracker." If nothing new,
+   don't send a notification.
+
 ## 3. Browser
 
 - Use **Claude in Chrome** (`mcp__claude-in-chrome__*`): the owner's real Chrome

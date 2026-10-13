@@ -49,6 +49,9 @@ const WRITABLE = new Set([
   "rejection_reason",
   "video_required",
   "references_required",
+  "last_reply_at",
+  "last_reply_channel",
+  "last_reply_summary",
 ]);
 
 type Row = Record<string, unknown>;
@@ -154,7 +157,7 @@ async function runSync() {
   const { data: known, error: snapshotError } = await supabase
     .from(TABLE)
     .select(
-      "normalized_job_url, link, job_posting_title, client_name, platform, status, posting_date, date_applied, updated_at",
+      "normalized_job_url, link, job_posting_title, client_name, platform, status, posting_date, date_applied, email_subject, application_method, updated_at",
     );
   if (snapshotError) {
     errors.push(`Snapshot not updated: ${snapshotError.message}`);
