@@ -29,7 +29,9 @@ function describeError(error: PostgrestError | Error): string {
   return error.message;
 }
 
-export type SyncResult = { files: number; inserted: number; updated: number; errors: string[] };
+export type ReviewDecision = "send" | "withdraw" | "cancel-send" | "mark-applied";
+
+export type SyncResult ={ files: number; inserted: number; updated: number; errors: string[] };
 
 /** Imports jobs queued by the job-hunting agent (local files) under the user's session. */
 async function syncAgentQueue(): Promise<SyncResult | null> {
@@ -116,19 +118,30 @@ export function useJobs() {
    * Kim's review decision on a drafted application. Only applies if the job is
    * still in the expected status, so a stale page can't undo the agent's work.
    */
-  const reviewJob = useCallback(async (id: string, decision: "send" | "withdraw" | "cancel-send") => {
+  const reviewJob = useCallback(async (id: string, decision: ReviewDecision) => {
     const now = new Date().toISOString();
+    // Application dates use Asia/Manila (Kim's reference timezone).
+    const manilaDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
     const change =
       decision === "send"
-        ? { from: "Pending Review", patch: { status: "Approved to Send", approved_at: now } }
+        ? { from: ["Pending Review"], patch: { status: "Approved to Send", approved_at: now } }
         : decision === "withdraw"
-          ? { from: "Pending Review", patch: { status: "Withdrawn" } }
-          : { from: "Approved to Send", patch: { status: "Pending Review", approved_at: null } };
+          ? { from: ["Pending Review"], patch: { status: "Withdrawn" } }
+          : decision === "cancel-send"
+            ? { from: ["Approved to Send"], patch: { status: "Pending Review", approved_at: null } }
+            : {
+                from: ["Pending Review", "Approved to Send"],
+                patch: {
+                  status: "Applied",
+                  date_applied: manilaDate,
+                  submission_evidence: `Sent manually by Kim from the tracker's review card; marked Applied ${new Date().toLocaleString()}.`,
+                },
+              };
     const { data, error } = await createClient()
       .from(TABLE)
       .update({ ...change.patch, updated_at: now })
       .eq(ID_COLUMN, id)
-      .eq("status", change.from)
+      .in("status", change.from)
       .select("*");
     if (error) throw new Error(describeError(error));
     if (!data?.length) {

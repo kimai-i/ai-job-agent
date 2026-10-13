@@ -2,11 +2,35 @@
 
 import { useState } from "react";
 import type { JobApplication } from "@/lib/jobs/schema";
+import { safeHref } from "@/lib/jobs/format";
+import type { ReviewDecision } from "@/lib/jobs/use-jobs";
 import { ConfirmDialog } from "./confirm-dialog";
-import { SendIcon, XIcon } from "./icons";
+import { ExternalLinkIcon, SendIcon, XIcon } from "./icons";
 import { btn } from "./ui";
 
-export type ReviewDecision = "send" | "withdraw" | "cancel-send";
+export type { ReviewDecision };
+
+function CopyButton({ text, label }: { text: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      className={btn.secondary}
+      disabled={!text}
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1800);
+        } catch {
+          // Clipboard blocked: the text is still visible above to copy by hand.
+        }
+      }}
+    >
+      {copied ? "Copied ✓" : label}
+    </button>
+  );
+}
 
 function text(job: JobApplication, column: string): string {
   const v = job.raw[column];
@@ -75,7 +99,16 @@ export function ReviewCard({
               busyLabel: "Cancelling…",
               tone: "danger" as const,
             }
-          : null;
+          : confirming === "mark-applied"
+            ? {
+                title: "Did you send it?",
+                message:
+                  "Only confirm after you've clicked Send on the job site and seen its confirmation. The job moves to Job Applications with today's date.",
+                confirmLabel: "Yes, mark Applied",
+                busyLabel: "Saving…",
+                tone: "primary" as const,
+              }
+            : null;
 
   return (
     <section className="mt-5 rounded-xl border border-indigo-200 bg-indigo-50/50 p-4 dark:border-indigo-500/30 dark:bg-indigo-500/5">
@@ -150,6 +183,27 @@ export function ReviewCard({
             </button>
           </>
         )}
+      </div>
+
+      <div className="mt-4 border-t border-indigo-200 pt-4 dark:border-indigo-500/30">
+        <p className="text-sm font-semibold">Send it yourself (no Claude needed)</p>
+        <ol className="mt-1 list-decimal pl-5 text-xs text-zinc-600 dark:text-zinc-400">
+          <li>Open the posting and click its Apply button.</li>
+          <li>Paste the subject and cover letter{points ? `, set ${points} points` : ""}, and send it there.</li>
+          <li>Come back and mark it Applied.</li>
+        </ol>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {safeHref(job.link) && (
+            <a href={safeHref(job.link)!} target="_blank" rel="noopener noreferrer" className={btn.secondary}>
+              <ExternalLinkIcon /> Open job posting
+            </a>
+          )}
+          <CopyButton text={text(job, "email_subject")} label="Copy subject" />
+          <CopyButton text={coverLetter} label="Copy cover letter" />
+          <button type="button" className={btn.primary} onClick={() => setConfirming("mark-applied")}>
+            I sent it – mark Applied
+          </button>
+        </div>
       </div>
 
       {dialog && confirming && (
