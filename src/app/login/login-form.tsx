@@ -11,10 +11,79 @@ const NOTICES: Record<string, { tone: "ok" | "warn"; text: string }> = {
     tone: "warn",
     text: "That confirmation link is invalid or has expired. Request a new one below by trying to sign in.",
   },
+  "password-updated": { tone: "ok", text: "Your password has been updated. Sign in with your new password." },
 };
+
+function ForgotPasswordForm({ initialEmail, onBack }: { initialEmail: string; onBack: () => void }) {
+  const [email, setEmail] = useState(initialEmail);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+
+  async function sendReset(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    const { error } = await createClient().auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setBusy(false);
+    if (error) setError(error.message);
+    else setSent(true);
+  }
+
+  return (
+    <form onSubmit={sendReset} className={`${card} space-y-4 p-6`}>
+      <div>
+        <h2 className="text-base font-semibold">Reset your password</h2>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+          Enter your account email and we&rsquo;ll send you a link to set a new password.
+        </p>
+      </div>
+      {sent ? (
+        <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300">
+          If an account exists for {email.trim()}, a reset link is on its way. Open it in this same browser.
+        </p>
+      ) : (
+        <>
+          <div>
+            <label htmlFor="reset-email" className={label}>
+              Email
+            </label>
+            <input
+              id="reset-email"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={input}
+            />
+          </div>
+          {error && (
+            <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+              {error}
+            </p>
+          )}
+          <button type="submit" className={`${btn.primary} w-full`} disabled={busy}>
+            {busy ? "Sending…" : "Send reset link"}
+          </button>
+        </>
+      )}
+      <button
+        type="button"
+        onClick={onBack}
+        className="w-full text-center text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+      >
+        Back to sign in
+      </button>
+    </form>
+  );
+}
 
 export function LoginForm() {
   const router = useRouter();
+  const [mode, setMode] = useState<"signin" | "forgot">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -69,6 +138,10 @@ export function LoginForm() {
     }
   }
 
+  if (mode === "forgot") {
+    return <ForgotPasswordForm initialEmail={email} onBack={() => setMode("signin")} />;
+  }
+
   return (
     <form onSubmit={signIn} className={`${card} space-y-4 p-6`}>
       {notice && (
@@ -97,9 +170,18 @@ export function LoginForm() {
         />
       </div>
       <div>
-        <label htmlFor="password" className={label}>
-          Password
-        </label>
+        <div className="mb-1.5 flex items-center justify-between">
+          <label htmlFor="password" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            Password
+          </label>
+          <button
+            type="button"
+            onClick={() => setMode("forgot")}
+            className="text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+          >
+            Forgot password?
+          </button>
+        </div>
         <input
           id="password"
           type="password"

@@ -7,6 +7,7 @@ import { supabaseHost } from "@/lib/supabase/env";
 import { TABLE } from "@/lib/jobs/schema";
 import { PageHeader } from "@/components/page-header";
 import { setTheme } from "@/components/theme-toggle";
+import { NewPasswordForm } from "@/components/new-password-form";
 import { signOut } from "@/components/sidebar";
 import { LogOutIcon, MoonIcon, SunIcon } from "@/components/icons";
 import { btn, card } from "@/components/ui";
@@ -38,6 +39,7 @@ export function SettingsView() {
   const router = useRouter();
   const [user, setUser] = useState<{ email: string; confirmed: boolean; lastSignIn: string } | null>(null);
   const [connection, setConnection] = useState<Connection>({ state: "checking" });
+  const [passwordChanged, setPasswordChanged] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -73,6 +75,17 @@ export function SettingsView() {
           <button type="button" className={`${btn.secondary} mt-4`} onClick={() => signOut(router)}>
             <LogOutIcon /> Sign out
           </button>
+        </Section>
+
+        <Section title="Password" description="Change the password you use to sign in.">
+          {passwordChanged && (
+            <p className="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300">
+              Your password has been updated.
+            </p>
+          )}
+          <div className="max-w-sm">
+            <NewPasswordForm onDone={() => setPasswordChanged(true)} />
+          </div>
         </Section>
 
         <Section title="Appearance" description="Choose light or dark mode. Saved on this device.">
