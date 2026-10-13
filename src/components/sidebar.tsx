@@ -21,7 +21,7 @@ import { btn } from "./ui";
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: DashboardIcon },
   { href: "/applications", label: "Job Applications", icon: BriefcaseIcon },
-  { href: "/discovery", label: "Job Discovery", icon: CompassIcon, soon: true },
+  { href: "/discovery", label: "Job Discovery", icon: CompassIcon },
   { href: "/qualification", label: "AI Qualification", icon: SparklesIcon, soon: true },
   { href: "/cover-letters", label: "Cover Letters", icon: FileTextIcon, soon: true },
   { href: "/settings", label: "Settings", icon: SettingsIcon },

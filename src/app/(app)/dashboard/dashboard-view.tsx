@@ -89,7 +89,7 @@ export function DashboardView() {
 
       {!loading && stats.pendingReview > 0 && (
         <Link
-          href="/applications?status=Pending%20Review"
+          href="/discovery?tab=review"
           className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-4 transition hover:bg-indigo-100 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20"
         >
           <div>

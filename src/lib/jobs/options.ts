@@ -34,6 +34,30 @@ export const STATUSES = [
   "Withdrawn",
 ] as const;
 
+/** Job Discovery tabs: jobs found but not yet sent, grouped by what they need. */
+export const DISCOVERY_TABS = [
+  {
+    id: "review",
+    label: "Ready for review",
+    statuses: ["Pending Review", "Approved to Send"],
+    empty: "No drafts waiting. New ones arrive after each 3 AM / 3 PM search.",
+  },
+  {
+    id: "action",
+    label: "Needs action",
+    statuses: ["Needs Information", "External Application", "Video Required", "Submission Failed", "Discovered", "Qualified", "Drafted"],
+    empty: "Nothing needs your input right now.",
+  },
+  {
+    id: "archived",
+    label: "Not pursued",
+    statuses: ["Screened Out", "Withdrawn"],
+    empty: "No screened-out or withdrawn jobs.",
+  },
+] as const;
+
+export type DiscoveryTabId = (typeof DISCOVERY_TABS)[number]["id"];
+
 /** Decisions Kim makes on the live site; the agent must not undo them. */
 export const OWNER_DECISION_STATUSES: readonly string[] = ["Approved to Send", "Withdrawn"];
 

@@ -51,8 +51,8 @@ export function ReviewCard({
               on {job.platform}
               {points ? `, using ${points} OLJ points` : ""}. It is submitted the next time you type{" "}
               <span className="font-medium text-zinc-900 dark:text-zinc-100">&ldquo;send approved&rdquo;</span> in
-              Claude. If anything on the posting has changed by then, it won&rsquo;t be sent and you&rsquo;ll be told
-              why.
+              Claude. Once it&rsquo;s sent and marked Applied, it moves from Job Discovery to Job Applications. If
+              anything on the posting has changed by then, it won&rsquo;t be sent and you&rsquo;ll be told why.
             </>
           ),
           confirmLabel: "Send",

@@ -53,12 +53,33 @@ export const LIST_COLUMNS: { key: JobFieldKey; label: string }[] = [
   { key: "clientAcquisition", label: "Client Acquisition" },
 ];
 
+/** Extra read-only columns shown on the Job Discovery page. */
+export type ColumnKey = JobFieldKey | "dateDiscovered" | "score";
+
+/** Job Discovery columns: same as the list view, with discovery date and match score. */
+export const DISCOVERY_COLUMNS: { key: ColumnKey; label: string }[] = [
+  { key: "platform", label: "Platform" },
+  { key: "dateDiscovered", label: "Date Discovered" },
+  { key: "jobTitle", label: "Job Posting Title" },
+  { key: "link", label: "Link" },
+  { key: "clientName", label: "Client Name" },
+  { key: "jobType", label: "Job Type" },
+  { key: "rate", label: "Rate" },
+  { key: "timeZone", label: "Time Zone" },
+  { key: "status", label: "Status" },
+  { key: "score", label: "Match Score" },
+];
+
 export type JobFormValues = Record<JobFieldKey, string>;
 
 export type DbRow = Record<string, unknown>;
 
 export interface JobApplication extends JobFormValues {
   id: string;
+  /** YYYY-MM-DD the agent (or Kim) first found the job. */
+  dateDiscovered: string;
+  /** AI match score 0-100 as text, empty if not scored. */
+  score: string;
   /** The full database row, including the extra future-automation columns. */
   raw: DbRow;
 }
@@ -75,6 +96,8 @@ export function fromRow(row: DbRow): JobApplication {
   }
   // Date columns may be `date` or `timestamptz`; keep only YYYY-MM-DD.
   job.dateApplied = job.dateApplied.slice(0, 10);
+  job.dateDiscovered = (asText(row.date_discovered) || asText(row.created_at)).slice(0, 10);
+  job.score = asText(row.ai_match_score);
   return job;
 }
 

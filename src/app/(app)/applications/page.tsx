@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { ApplicationsView } from "./applications-view";
+import { JobsBoard } from "@/components/jobs-board";
 
 export const metadata: Metadata = { title: "Job Applications" };
 
 export default function ApplicationsPage() {
-  return <ApplicationsView />;
+  return <JobsBoard mode="applications" />;
 }
