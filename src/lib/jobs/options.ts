@@ -22,6 +22,7 @@ export const STATUSES = [
   "External Application",
   "Drafted",
   "Pending Review",
+  "Approved to Send",
   "Submission Failed",
   "Applied",
   "Employer Replied",
@@ -30,7 +31,22 @@ export const STATUSES = [
   "Offer Received",
   "Hired",
   "Screened Out",
+  "Withdrawn",
 ] as const;
+
+/** Decisions Kim makes on the live site; the agent must not undo them. */
+export const OWNER_DECISION_STATUSES: readonly string[] = ["Approved to Send", "Withdrawn"];
+
+/** Statuses the agent assigns before Kim has reviewed a job. */
+export const PRE_REVIEW_STATUSES: readonly string[] = [
+  "Discovered",
+  "Qualified",
+  "Drafted",
+  "Pending Review",
+  "Screened Out",
+  "Video Required",
+  "External Application",
+];
 
 /** How the client was acquired. Optional; empty until known. */
 export const CLIENT_ACQUISITION = ["Honoring", "Partnership", "Referral", "B2B"] as const;
@@ -99,6 +115,11 @@ export const STATUS_STYLES: Record<string, { badge: string; bar: string }> = {
     bar: "bg-red-600",
   },
   "Screened Out": { badge: NEUTRAL, bar: "bg-zinc-300 dark:bg-zinc-600" },
+  "Approved to Send": {
+    badge: "bg-indigo-600 text-white ring-indigo-700/30 dark:bg-indigo-500 dark:text-white dark:ring-indigo-300/30",
+    bar: "bg-indigo-600",
+  },
+  Withdrawn: { badge: NEUTRAL, bar: "bg-zinc-300 dark:bg-zinc-600" },
   "Employer Replied": {
     badge: "bg-lime-50 text-lime-800 ring-lime-600/20 dark:bg-lime-500/10 dark:text-lime-300 dark:ring-lime-400/30",
     bar: "bg-lime-500",

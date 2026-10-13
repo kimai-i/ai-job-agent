@@ -74,6 +74,27 @@ label or mark anything, never schedule interviews.
    call. Status → Interview Scheduled. 1 more reply in tracker." If nothing new,
    don't send a notification.
 
+**Send approved** (interactive only: Kim types "send approved" in a session and
+is present). Each job she marked "Send" on the live tracker (status
+`Approved to Send`) is her approval for that one application, exactly as drafted.
+1. Open `http://localhost:3000/applications` in the built-in browser pane to
+   refresh `job-agent/state/known-jobs.json` (start the app with `preview_start`
+   name `dev` if needed). List the `Approved to Send` jobs back to her: title,
+   employer, points. Then send them one at a time, oldest `approved_at` first.
+2. Before each send, re-open the posting and check it's still open, not already
+   applied to, needs the same points, and has no new video, reference, form or
+   question requirement. If anything differs, don't send: tell her and set
+   `Needs Information` with the reason.
+3. OnlineJobs.ph: Subject = `email_subject`, Message = `cover_letter`
+   (unchanged), Apply points = `olj_points` (3 if empty), Contact Info = her
+   correct details from MASTER_PROMPT. Click SEND EMAIL once, then verify the
+   success text and the job page's "Applied" notice. If the button doesn't
+   respond twice, stop and ask her to click it, then verify.
+4. Email and external-form applications: prepare everything, but she submits
+   those herself.
+5. Queue `Applied` with `date_applied` and `submission_evidence` for each
+   verified send, import, and report back a table of the results.
+
 ## 3. Browser
 
 - Use **Claude in Chrome** (`mcp__claude-in-chrome__*`): the owner's real Chrome

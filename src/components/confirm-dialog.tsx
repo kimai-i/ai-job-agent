@@ -8,12 +8,16 @@ export function ConfirmDialog({
   title,
   message,
   confirmLabel = "Delete",
+  busyLabel = "Deleting…",
+  tone = "danger",
   onConfirm,
   onClose,
 }: {
   title: string;
   message: React.ReactNode;
   confirmLabel?: string;
+  busyLabel?: string;
+  tone?: "danger" | "primary";
   onConfirm: () => Promise<void>;
   onClose: () => void;
 }) {
@@ -42,8 +46,8 @@ export function ConfirmDialog({
           <button type="button" className={btn.secondary} onClick={onClose} disabled={busy}>
             Cancel
           </button>
-          <button type="button" className={btn.danger} onClick={confirm} disabled={busy}>
-            {busy ? "Deleting…" : confirmLabel}
+          <button type="button" className={tone === "danger" ? btn.danger : btn.primary} onClick={confirm} disabled={busy}>
+            {busy ? busyLabel : confirmLabel}
           </button>
         </>
       }

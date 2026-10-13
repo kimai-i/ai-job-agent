@@ -111,5 +111,33 @@ export function useJobs() {
     setJobs((prev) => prev.filter((j) => j.id !== id));
   }, []);
 
-  return { jobs, loading, error, sync, refresh, createJob, updateJob, deleteJob };
+  /**
+   * Kim's review decision on a drafted application. Only applies if the job is
+   * still in the expected status, so a stale page can't undo the agent's work.
+   */
+  const reviewJob = useCallback(async (id: string, decision: "send" | "withdraw" | "cancel-send") => {
+    const now = new Date().toISOString();
+    const change =
+      decision === "send"
+        ? { from: "Pending Review", patch: { status: "Approved to Send", approved_at: now } }
+        : decision === "withdraw"
+          ? { from: "Pending Review", patch: { status: "Withdrawn" } }
+          : { from: "Approved to Send", patch: { status: "Pending Review", approved_at: null } };
+    const { data, error } = await createClient()
+      .from(TABLE)
+      .update({ ...change.patch, updated_at: now })
+      .eq(ID_COLUMN, id)
+      .eq("status", change.from)
+      .select("*");
+    if (error) throw new Error(describeError(error));
+    if (!data?.length) {
+      await refresh();
+      throw new Error("This job's status changed in the meantime. The list has been refreshed.");
+    }
+    const job = fromRow(data[0] as DbRow);
+    setJobs((prev) => prev.map((j) => (j.id === id ? job : j)));
+    return job;
+  }, [refresh]);
+
+  return { jobs, loading, error, sync, refresh, createJob, updateJob, deleteJob, reviewJob };
 }

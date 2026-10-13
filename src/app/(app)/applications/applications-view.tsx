@@ -34,7 +34,7 @@ function compare(a: JobApplication, b: JobApplication, key: JobFieldKey): number
 type FormState = { mode: "create" } | { mode: "edit"; job: JobApplication } | null;
 
 export function ApplicationsView() {
-  const { jobs, loading, error, sync, refresh, createJob, updateJob, deleteJob } = useJobs();
+  const { jobs, loading, error, sync, refresh, createJob, updateJob, deleteJob, reviewJob } = useJobs();
 
   const [query, setQuery] = useState("");
   const [platform, setPlatform] = useState(ALL);
@@ -51,8 +51,10 @@ export function ApplicationsView() {
     if (params.get("new") === "1") {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time read of the URL on mount
       setForm({ mode: "create" });
-      window.history.replaceState(null, "", window.location.pathname);
     }
+    const statusParam = params.get("status");
+    if (statusParam && (STATUSES as readonly string[]).includes(statusParam)) setStatus(statusParam);
+    if (params.size) window.history.replaceState(null, "", window.location.pathname);
   }, []);
 
   const viewing = jobs.find((j) => j.id === viewingId) ?? null;
@@ -231,6 +233,7 @@ export function ApplicationsView() {
           onClose={() => setViewingId(null)}
           onEdit={() => setForm({ mode: "edit", job: viewing })}
           onDelete={() => setDeleting(viewing)}
+          onReview={(decision) => reviewJob(viewing.id, decision)}
         />
       )}
 

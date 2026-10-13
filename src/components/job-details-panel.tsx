@@ -6,6 +6,7 @@ import { formatDate } from "@/lib/jobs/format";
 import { AcquisitionBadge, StatusBadge } from "./badges";
 import { JobLink } from "./job-link";
 import { PencilIcon, TrashIcon, XIcon } from "./icons";
+import { ReviewCard, type ReviewDecision } from "./review-card";
 import { btn } from "./ui";
 
 function humanize(column: string) {
@@ -37,12 +38,15 @@ export function JobDetailsPanel({
   onClose,
   onEdit,
   onDelete,
+  onReview,
 }: {
   job: JobApplication;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onReview?: (decision: ReviewDecision) => Promise<unknown>;
 }) {
+  const reviewable = job.status === "Pending Review" || job.status === "Approved to Send";
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", onKey);
@@ -77,6 +81,7 @@ export function JobDetailsPanel({
         </div>
 
         <div className="flex-1 overflow-y-auto px-6">
+          {reviewable && onReview && <ReviewCard job={job} onReview={onReview} />}
           <dl className="divide-y divide-zinc-100 dark:divide-zinc-800">
             <Row label="Platform">{dash(job.platform)}</Row>
             <Row label="Date Applied">{dash(formatDate(job.dateApplied))}</Row>

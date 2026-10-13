@@ -3,7 +3,7 @@ import path from "node:path";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeJobUrl } from "@/lib/jobs/format";
-import { SUBMITTED_STATUSES } from "@/lib/jobs/options";
+import { OWNER_DECISION_STATUSES, PRE_REVIEW_STATUSES, SUBMITTED_STATUSES } from "@/lib/jobs/options";
 import { TABLE } from "@/lib/jobs/schema";
 
 /**
@@ -125,8 +125,12 @@ async function runSync() {
       }
 
       if (existing) {
-        // Never move a submitted application back to an earlier status.
+        // Never move a submitted application back to an earlier status, and
+        // never let a discovery run undo Kim's Send / Withdraw decision.
         if (SUBMITTED_STATUSES.includes(existing.status) && !SUBMITTED_STATUSES.includes(String(row.status))) {
+          delete row.status;
+        }
+        if (OWNER_DECISION_STATUSES.includes(existing.status) && PRE_REVIEW_STATUSES.includes(String(row.status))) {
           delete row.status;
         }
         const { error } = await supabase
@@ -157,7 +161,7 @@ async function runSync() {
   const { data: known, error: snapshotError } = await supabase
     .from(TABLE)
     .select(
-      "normalized_job_url, link, job_posting_title, client_name, platform, status, posting_date, date_applied, email_subject, application_method, updated_at",
+      "normalized_job_url, link, job_posting_title, client_name, platform, status, posting_date, date_applied, email_subject, application_method, application_instructions, cover_letter, olj_points, expected_rate, approved_at, updated_at",
     );
   if (snapshotError) {
     errors.push(`Snapshot not updated: ${snapshotError.message}`);

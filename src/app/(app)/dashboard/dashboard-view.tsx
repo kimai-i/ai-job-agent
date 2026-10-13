@@ -87,6 +87,23 @@ export function DashboardView() {
 
       {error && <ErrorBanner message={error} onRetry={refresh} />}
 
+      {!loading && stats.pendingReview > 0 && (
+        <Link
+          href="/applications?status=Pending%20Review"
+          className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-4 transition hover:bg-indigo-100 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20"
+        >
+          <div>
+            <p className="text-sm font-semibold text-indigo-900 dark:text-indigo-200">
+              {stats.pendingReview} application{stats.pendingReview === 1 ? "" : "s"} ready for your review
+            </p>
+            <p className="text-sm text-indigo-800/80 dark:text-indigo-300/80">
+              Open each one, read the draft, then choose Send or Withdraw.
+            </p>
+          </div>
+          <span className={`${btn.primary} shrink-0`}>Review now</span>
+        </Link>
+      )}
+
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard
           label="Jobs Discovered"
