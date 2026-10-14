@@ -3,7 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useJobs } from "@/lib/jobs/use-jobs";
 import { DISCOVERY_TABS, PLATFORMS, STATUSES, SUBMITTED_STATUSES, type DiscoveryTabId } from "@/lib/jobs/options";
-import { DISCOVERY_COLUMNS, LIST_COLUMNS, type ColumnKey, type JobApplication } from "@/lib/jobs/schema";
+import {
+  DISCOVERY_COLUMNS,
+  LIST_COLUMNS,
+  NOT_PURSUED_COLUMNS,
+  type ColumnKey,
+  type JobApplication,
+} from "@/lib/jobs/schema";
 import { downloadJobsCsv } from "@/lib/jobs/csv";
 import { ErrorBanner, PageHeader } from "./page-header";
 import { JobsTable, type SortState } from "./jobs-table";
@@ -288,7 +294,7 @@ export function JobsBoard({ mode }: { mode: "applications" | "discovery" }) {
         ) : (
           <JobsTable
             jobs={visible}
-            columns={discovery ? DISCOVERY_COLUMNS : LIST_COLUMNS}
+            columns={discovery ? (tab === "archived" ? NOT_PURSUED_COLUMNS : DISCOVERY_COLUMNS) : LIST_COLUMNS}
             sort={sort}
             onSort={toggleSort}
             onView={(j) => setViewingId(j.id)}

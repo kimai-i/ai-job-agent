@@ -54,7 +54,7 @@ export const LIST_COLUMNS: { key: JobFieldKey; label: string }[] = [
 ];
 
 /** Extra read-only columns shown on the Job Discovery page. */
-export type ColumnKey = JobFieldKey | "dateDiscovered" | "score";
+export type ColumnKey = JobFieldKey | "dateDiscovered" | "score" | "reason";
 
 /** Job Discovery columns: same as the list view, with discovery date and match score. */
 export const DISCOVERY_COLUMNS: { key: ColumnKey; label: string }[] = [
@@ -70,6 +70,11 @@ export const DISCOVERY_COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "score", label: "Match Score" },
 ];
 
+/** "Not pursued" tab: same as Discovery, with the reason right after Status. */
+export const NOT_PURSUED_COLUMNS: { key: ColumnKey; label: string }[] = DISCOVERY_COLUMNS.flatMap((c) =>
+  c.key === "status" ? [c, { key: "reason" as const, label: "Reason" }] : [c],
+);
+
 export type JobFormValues = Record<JobFieldKey, string>;
 
 export type DbRow = Record<string, unknown>;
@@ -80,6 +85,8 @@ export interface JobApplication extends JobFormValues {
   dateDiscovered: string;
   /** AI match score 0-100 as text, empty if not scored. */
   score: string;
+  /** Why a job was screened out or withdrawn (rejection_reason). */
+  reason: string;
   /** The full database row, including the extra future-automation columns. */
   raw: DbRow;
 }
@@ -98,6 +105,7 @@ export function fromRow(row: DbRow): JobApplication {
   job.dateApplied = job.dateApplied.slice(0, 10);
   job.dateDiscovered = (asText(row.date_discovered) || asText(row.created_at)).slice(0, 10);
   job.score = asText(row.ai_match_score);
+  job.reason = asText(row.rejection_reason);
   return job;
 }
 

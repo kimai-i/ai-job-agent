@@ -36,6 +36,14 @@ function Cell({ job, k }: { job: JobApplication; k: ColumnKey }) {
           <JobLink value={v} />
         </span>
       );
+    case "reason":
+      return v ? (
+        <span className="block max-w-[22rem] truncate" title={v}>
+          {v}
+        </span>
+      ) : (
+        <span className="text-zinc-400">—</span>
+      );
     case "dateDiscovered":
     case "dateApplied":
       return v ? <span className="whitespace-nowrap">{formatDate(v)}</span> : <span className="text-zinc-400">—</span>;
