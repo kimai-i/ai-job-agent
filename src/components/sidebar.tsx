@@ -8,7 +8,6 @@ import {
   BriefcaseIcon,
   CompassIcon,
   DashboardIcon,
-  FileTextIcon,
   LogOutIcon,
   MenuIcon,
   SettingsIcon,
@@ -22,8 +21,6 @@ const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: DashboardIcon },
   { href: "/applications", label: "Job Applications", icon: BriefcaseIcon },
   { href: "/discovery", label: "Job Discovery", icon: CompassIcon },
-  { href: "/qualification", label: "AI Qualification", icon: SparklesIcon, soon: true },
-  { href: "/cover-letters", label: "Cover Letters", icon: FileTextIcon, soon: true },
   { href: "/settings", label: "Settings", icon: SettingsIcon },
 ];
 
@@ -51,7 +48,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   return (
     <nav className="flex flex-col gap-1">
-      {NAV.map(({ href, label, icon: Icon, soon }) => {
+      {NAV.map(({ href, label, icon: Icon }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
         return (
           <Link
@@ -67,11 +64,6 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
           >
             <Icon className="size-4 shrink-0" />
             <span className="flex-1">{label}</span>
-            {soon && (
-              <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-zinc-500 uppercase dark:bg-zinc-800 dark:text-zinc-400">
-                Soon
-              </span>
-            )}
           </Link>
         );
       })}

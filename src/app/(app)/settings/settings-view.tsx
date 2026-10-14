@@ -123,10 +123,18 @@ export function SettingsView() {
           </div>
         </Section>
 
-        <Section title="Automation" description="AI features planned for later phases.">
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
-            Automated job searching, AI qualification, cover letter drafting and application sending are{" "}
-            <span className="font-semibold">disabled</span> in this version. Everything is tracked manually.
+        <Section title="Automation" description="What the job agent does on its own.">
+          <ul className="list-disc space-y-1 pl-5 text-sm text-zinc-600 dark:text-zinc-300">
+            <li>Searches OnlineJobs.ph and LinkedIn every 2 hours from 9 PM to 5 AM (Philippine time).</li>
+            <li>Screens each job against your rules and drafts the cover letter for the ones that qualify.</li>
+            <li>Checks for employer replies every hour and updates statuses.</li>
+            <li>
+              Never submits on its own: you review each draft in Job Discovery and send it yourself, or ask Claude to
+              send it.
+            </li>
+          </ul>
+          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+            Runs while your computer, the Claude app and Chrome are on.
           </p>
         </Section>
       </div>
