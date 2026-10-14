@@ -49,6 +49,9 @@ export function JobFormModal({
   const initialLetter = rawText(job, "cover_letter");
   const [subject, setSubject] = useState(initialSubject);
   const [coverLetter, setCoverLetter] = useState(initialLetter);
+  // Withdrawn / Screened Out jobs keep their "why" in rejection_reason.
+  const initialReason = rawText(job, "rejection_reason");
+  const [reason, setReason] = useState(initialReason);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -82,6 +85,7 @@ export function JobFormModal({
         extras.approved_at = null;
       }
     }
+    if (reason !== initialReason) extras.rejection_reason = reason.trim() || null;
     try {
       await onSubmit(submitted, extras);
       onClose();
@@ -203,6 +207,26 @@ export function JobFormModal({
         </div>
         {select("status", "Status", STATUSES)}
         {select("clientAcquisition", "Client Acquisition", CLIENT_ACQUISITION, true)}
+
+        {(values.status === "Withdrawn" || values.status === "Screened Out") && (
+          <div className="sm:col-span-2">
+            <label htmlFor="reason" className={label}>
+              {values.status === "Withdrawn" ? "Reason for withdrawing" : "Reason screened out"}
+            </label>
+            <textarea
+              id="reason"
+              rows={3}
+              className={input}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder={
+                values.status === "Withdrawn"
+                  ? "e.g. Accepted another offer, pay too low, schedule changed, client unresponsive…"
+                  : "Why this job didn't meet your rules"
+              }
+            />
+          </div>
+        )}
 
         <div className="border-t border-zinc-200 pt-4 sm:col-span-2 dark:border-zinc-800">
           <p className="text-sm font-semibold">Application draft</p>

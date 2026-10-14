@@ -9,7 +9,10 @@ import { PencilIcon, TrashIcon, XIcon } from "./icons";
 import { ReviewCard, type ReviewDecision } from "./review-card";
 import { btn } from "./ui";
 
-function humanize(column: string) {
+function humanize(column: string, status?: string) {
+  if (column === "rejection_reason") {
+    return status === "Withdrawn" ? "Reason for Withdrawing" : "Reason";
+  }
   return column.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
@@ -45,7 +48,7 @@ export function JobDetailsPanel({
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
-  onReview?: (decision: ReviewDecision) => Promise<unknown>;
+  onReview?: (decision: ReviewDecision, opts?: { reason?: string }) => Promise<unknown>;
   onSaveDraft?: (draft: { email_subject: string; cover_letter: string }) => Promise<unknown>;
 }) {
   const reviewable = job.status === "Pending Review" || job.status === "Approved to Send";
@@ -110,7 +113,7 @@ export function JobDetailsPanel({
               </h3>
               <dl className="divide-y divide-zinc-100 pb-6 dark:divide-zinc-800">
                 {extras.map(([k, v]) => (
-                  <Row key={k} label={humanize(k)}>
+                  <Row key={k} label={humanize(k, job.status)}>
                     <span className="whitespace-pre-wrap break-words">{formatExtra(v)}</span>
                   </Row>
                 ))}

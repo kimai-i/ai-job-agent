@@ -124,7 +124,7 @@ export function useJobs() {
    * Kim's review decision on a drafted application. Only applies if the job is
    * still in the expected status, so a stale page can't undo the agent's work.
    */
-  const reviewJob = useCallback(async (id: string, decision: ReviewDecision) => {
+  const reviewJob = useCallback(async (id: string, decision: ReviewDecision, opts: { reason?: string } = {}) => {
     const now = new Date().toISOString();
     // Application dates use Asia/Manila (Kim's reference timezone).
     const manilaDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
@@ -132,7 +132,10 @@ export function useJobs() {
       decision === "send"
         ? { from: ["Pending Review"], patch: { status: "Approved to Send", approved_at: now } }
         : decision === "withdraw"
-          ? { from: ["Pending Review"], patch: { status: "Withdrawn" } }
+          ? {
+              from: ["Pending Review"],
+              patch: { status: "Withdrawn", ...(opts.reason?.trim() ? { rejection_reason: opts.reason.trim() } : {}) },
+            }
           : decision === "cancel-send"
             ? { from: ["Approved to Send"], patch: { status: "Pending Review", approved_at: null } }
             : {

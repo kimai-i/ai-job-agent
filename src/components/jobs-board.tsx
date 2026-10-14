@@ -310,7 +310,7 @@ export function JobsBoard({ mode }: { mode: "applications" | "discovery" }) {
           onClose={() => setViewingId(null)}
           onEdit={() => setForm({ mode: "edit", job: viewing })}
           onDelete={() => setDeleting(viewing)}
-          onReview={(decision) => reviewJob(viewing.id, decision)}
+          onReview={(decision, opts) => reviewJob(viewing.id, decision, opts)}
           onSaveDraft={(draft) => saveDraft(viewing, draft)}
         />
       )}

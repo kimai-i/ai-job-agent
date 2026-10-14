@@ -54,10 +54,11 @@ export function ReviewCard({
   onSaveDraft,
 }: {
   job: JobApplication;
-  onReview: (decision: ReviewDecision) => Promise<unknown>;
+  onReview: (decision: ReviewDecision, opts?: { reason?: string }) => Promise<unknown>;
   onSaveDraft?: (draft: { email_subject: string; cover_letter: string }) => Promise<unknown>;
 }) {
   const [confirming, setConfirming] = useState<ReviewDecision | null>(null);
+  const [withdrawReason, setWithdrawReason] = useState("");
   const [showNotes, setShowNotes] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draftSubject, setDraftSubject] = useState("");
@@ -115,7 +116,22 @@ export function ReviewCard({
       : confirming === "withdraw"
         ? {
             title: "Withdraw this application?",
-            message: "Nothing will be sent to this employer. The job stays in your tracker as Withdrawn.",
+            message: (
+              <>
+                <p>Nothing will be sent to this employer. The job stays in your tracker as Withdrawn.</p>
+                <label htmlFor="withdraw-reason" className="mt-4 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  Reason (optional)
+                </label>
+                <textarea
+                  id="withdraw-reason"
+                  rows={3}
+                  className={`${input} mt-1.5`}
+                  value={withdrawReason}
+                  onChange={(e) => setWithdrawReason(e.target.value)}
+                  placeholder="e.g. Pay too low, schedule doesn't fit, not interested in the industry…"
+                />
+              </>
+            ),
             confirmLabel: "Withdraw",
             busyLabel: "Withdrawing…",
             tone: "danger" as const,
@@ -304,7 +320,7 @@ export function ReviewCard({
           busyLabel={dialog.busyLabel}
           tone={dialog.tone}
           onConfirm={async () => {
-            await onReview(confirming);
+            await onReview(confirming, confirming === "withdraw" ? { reason: withdrawReason } : undefined);
           }}
           onClose={() => setConfirming(null)}
         />
