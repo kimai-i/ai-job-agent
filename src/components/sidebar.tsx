@@ -17,10 +17,15 @@ import {
 import { ThemeToggle } from "./theme-toggle";
 import { btn } from "./ui";
 
-const NAV = [
+const NAV: { href: string; label: string; icon: typeof DashboardIcon; children?: { href: string; label: string }[] }[] = [
   { href: "/dashboard", label: "Dashboard", icon: DashboardIcon },
   { href: "/applications", label: "Job Applications", icon: BriefcaseIcon },
-  { href: "/discovery", label: "Job Discovery", icon: CompassIcon },
+  {
+    href: "/discovery",
+    label: "Job Discovery",
+    icon: CompassIcon,
+    children: [{ href: "/discovery/not-pursued", label: "Not pursued" }],
+  },
   { href: "/settings", label: "Settings", icon: SettingsIcon },
 ];
 
@@ -48,23 +53,41 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   return (
     <nav className="flex flex-col gap-1">
-      {NAV.map(({ href, label, icon: Icon }) => {
-        const active = pathname === href || pathname.startsWith(`${href}/`);
+      {NAV.map(({ href, label, icon: Icon, children = [] }) => {
+        const isOn = (h: string) => pathname === h || pathname.startsWith(`${h}/`);
+        // A parent stays unhighlighted while one of its sub-pages is open.
+        const active = isOn(href) && !children.some((c) => isOn(c.href));
         return (
-          <Link
-            key={href}
-            href={href}
-            onClick={onNavigate}
-            aria-current={active ? "page" : undefined}
-            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
-              active
-                ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300"
-                : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-            }`}
-          >
-            <Icon className="size-4 shrink-0" />
-            <span className="flex-1">{label}</span>
-          </Link>
+          <div key={href} className="flex flex-col gap-1">
+            <Link
+              href={href}
+              onClick={onNavigate}
+              aria-current={active ? "page" : undefined}
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                active
+                  ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300"
+                  : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+              }`}
+            >
+              <Icon className="size-4 shrink-0" />
+              <span className="flex-1">{label}</span>
+            </Link>
+            {children.map((c) => (
+              <Link
+                key={c.href}
+                href={c.href}
+                onClick={onNavigate}
+                aria-current={isOn(c.href) ? "page" : undefined}
+                className={`ml-5 border-l py-1.5 pr-3 pl-4 text-sm font-medium transition ${
+                  isOn(c.href)
+                    ? "border-indigo-500 text-indigo-700 dark:border-indigo-400 dark:text-indigo-300"
+                    : "border-zinc-200 text-zinc-500 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-100"
+                }`}
+              >
+                {c.label}
+              </Link>
+            ))}
+          </div>
         );
       })}
     </nav>

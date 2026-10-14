@@ -42,16 +42,19 @@ type FormState = { mode: "create" } | { mode: "edit"; job: JobApplication } | nu
 /**
  * Job Applications (mode "applications") shows jobs that were actually sent.
  * Job Discovery (mode "discovery") shows everything found but not yet sent,
- * split into Ready for review / Needs action / Not pursued tabs.
+ * split into Ready for review / Needs action tabs. Not pursued (mode
+ * "not-pursued") lists the screened-out and withdrawn ones on its own page.
  */
-export function JobsBoard({ mode }: { mode: "applications" | "discovery" }) {
+export function JobsBoard({ mode }: { mode: "applications" | "discovery" | "not-pursued" }) {
   const { jobs, loading, error, sync, refresh, createJob, updateJob, deleteJob, reviewJob, saveDraft } = useJobs();
-  const discovery = mode === "discovery";
+  const discovery = mode !== "applications";
+  const notPursued = mode === "not-pursued";
+  const tabs = notPursued ? [] : DISCOVERY_TABS.filter((t) => t.id !== "archived");
 
   const [query, setQuery] = useState("");
   const [platform, setPlatform] = useState(ALL);
   const [status, setStatus] = useState(ALL);
-  const [tab, setTab] = useState<DiscoveryTabId>("review");
+  const [tab, setTab] = useState<DiscoveryTabId>(notPursued ? "archived" : "review");
   const [sort, setSort] = useState<SortState>(
     discovery ? { key: "score", dir: "desc" } : { key: "dateApplied", dir: "desc" },
   );
@@ -68,10 +71,11 @@ export function JobsBoard({ mode }: { mode: "applications" | "discovery" }) {
       setForm({ mode: "create" });
     }
     const tabParam = params.get("tab");
-    if (tabParam && DISCOVERY_TABS.some((t) => t.id === tabParam)) setTab(tabParam as DiscoveryTabId);
+    if (tabParam && tabs.some((t) => t.id === tabParam)) setTab(tabParam as DiscoveryTabId);
     const statusParam = params.get("status");
     if (statusParam && (STATUSES as readonly string[]).includes(statusParam)) setStatus(statusParam);
     if (params.size) window.history.replaceState(null, "", window.location.pathname);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-time read of the URL on mount
   }, []);
 
   // Jobs that belong on this page at all.
@@ -131,11 +135,13 @@ export function JobsBoard({ mode }: { mode: "applications" | "discovery" }) {
   return (
     <>
       <PageHeader
-        title={discovery ? "Job Discovery" : "Job Applications"}
+        title={notPursued ? "Not pursued" : discovery ? "Job Discovery" : "Job Applications"}
         description={
-          discovery
-            ? "Jobs the agent found that haven't been sent yet. Review each draft, then Send or Withdraw."
-            : "Applications you've sent, from Applied through to client acquisition."
+          notPursued
+            ? "Jobs the agent screened out or you withdrew, with the reason for each."
+            : discovery
+              ? "Jobs the agent found that haven't been sent yet. Review each draft, then Send or Withdraw."
+              : "Applications you've sent, from Applied through to client acquisition."
         }
         actions={
           <>
@@ -178,9 +184,9 @@ export function JobsBoard({ mode }: { mode: "applications" | "discovery" }) {
         </div>
       )}
 
-      {discovery && (
+      {tabs.length > 0 && (
         <div className="mb-4 flex gap-1 overflow-x-auto rounded-xl bg-zinc-100 p-1 dark:bg-zinc-900" role="tablist">
-          {DISCOVERY_TABS.map((t) => {
+          {tabs.map((t) => {
             const active = t.id === tab;
             return (
               <button
