@@ -165,6 +165,10 @@ Dashboard or Job Applications page (`http://localhost:3000/applications`). At
 the end of a session, open that page in the built-in browser pane if the owner
 is signed in there; otherwise tell her to open it. Report the sync result.
 If the app reports errors for a file, fix the file and reload the page.
+If no "Job agent sync" banner appears after about 20 seconds, trigger the import
+directly from that signed-in page with
+`await fetch('/api/tracker/sync', {method: 'POST'}).then(r => r.json())` and
+report the returned `{inserted, updated, errors}`.
 
 ## 4b. Resume files
 

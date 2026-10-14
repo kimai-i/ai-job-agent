@@ -62,9 +62,16 @@ export function useJobs() {
       const result = await syncAgentQueue();
       // Keep the last non-empty result so a second, empty sync doesn't hide it.
       if (result && (result.inserted || result.updated || result.errors.length)) setSync(result);
-      const { data, error } = await createClient().from(TABLE).select("*");
-      if (error) throw error;
-      setJobs((data as DbRow[]).map(fromRow));
+      // The API returns at most 1,000 rows per request, so page through them.
+      const supabase = createClient();
+      const rows: DbRow[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await supabase.from(TABLE).select("*").order(ID_COLUMN).range(from, from + 999);
+        if (error) throw error;
+        rows.push(...(data as DbRow[]));
+        if (data.length < 1000) break;
+      }
+      setJobs(rows.map(fromRow));
       setError(null);
     } catch (e) {
       setError(describeError(e as Error));
