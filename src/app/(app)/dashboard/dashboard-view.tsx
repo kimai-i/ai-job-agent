@@ -11,6 +11,16 @@ import { ClockIcon, CompassIcon, CalendarIcon, HandshakeIcon, PlusIcon, SendIcon
 import { btn, card } from "@/components/ui";
 import { ScriptureBanner } from "@/components/scripture-banner";
 
+/** "Thu, Oct 15" for a YYYY-MM-DD date. */
+function shiftLabel(day: string): string {
+  return new Date(`${day}T12:00:00Z`).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 function StatCard({
   label,
   value,
@@ -44,37 +54,55 @@ function StatCard({
   );
 }
 
-/** YYYY-MM-DD in Asia/Manila (Kim's reference timezone). */
-function manilaDay(value: unknown): string {
-  const text = value == null ? "" : String(value);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
-  const date = new Date(text);
-  return Number.isNaN(date.getTime()) ? "" : MANILA_DAY.format(date);
-}
 const MANILA_DAY = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" });
+const HOUR = 3_600_000;
+
+/**
+ * Kim works a 9 PM to 6 AM shift (Philippine time, US daytime). A shift is
+ * named after the morning it ends: anything from 9 PM on Oct 15 until 9 PM on
+ * Oct 16 belongs to the "Oct 16" shift, so the dashboard keeps showing the
+ * latest shift during the day and starts fresh at 9 PM.
+ */
+function shiftOf(time: Date): string {
+  return MANILA_DAY.format(new Date(time.getTime() + 3 * HOUR));
+}
+
+function dayBefore(day: string): string {
+  return new Date(new Date(`${day}T00:00:00Z`).getTime() - 24 * HOUR).toISOString().slice(0, 10);
+}
+
+/**
+ * Whether a stored value falls in the given shift. Timestamps are exact.
+ * Date-only values (like Date Applied) count if they are the shift's start
+ * or end date, so last night's applications are included.
+ */
+function inShift(value: unknown, shift: string): boolean {
+  const text = value == null ? "" : String(value);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text === shift || text === dayBefore(shift);
+  const time = new Date(text);
+  return !Number.isNaN(time.getTime()) && shiftOf(time) === shift;
+}
 
 export function DashboardView() {
   const { jobs, loading, error, refresh } = useJobs();
 
-  // The cards count today only (Manila date). The review banner below still
-  // shows every draft waiting, whenever it was found.
-  const today = manilaDay(new Date().toISOString());
+  // The cards count the current work shift only. The review banner below
+  // still shows every draft waiting, whenever it was found.
+  const shift = shiftOf(new Date());
   const stats = useMemo(() => {
     const count = (fn: (j: (typeof jobs)[number]) => boolean) => jobs.filter(fn).length;
-    const foundToday = (j: (typeof jobs)[number]) =>
-      manilaDay(j.raw.date_discovered ?? j.raw.created_at) === today;
+    const foundThisShift = (j: (typeof jobs)[number]) => inShift(j.raw.created_at ?? j.raw.date_discovered, shift);
     // When a status was reached: the reply that triggered it, else the last update.
-    const changedToday = (j: (typeof jobs)[number]) =>
-      manilaDay(j.raw.last_reply_at ?? j.raw.updated_at) === today;
+    const changedThisShift = (j: (typeof jobs)[number]) => inShift(j.raw.last_reply_at ?? j.raw.updated_at, shift);
     return {
-      discovered: count(foundToday),
-      submitted: count((j) => SUBMITTED_STATUSES.includes(j.status) && j.dateApplied === today),
-      pendingReview: count((j) => j.status === "Pending Review" && foundToday(j)),
-      interviews: count((j) => j.status === "Interview Scheduled" && changedToday(j)),
-      acquired: count((j) => j.status === "Hired" && changedToday(j)),
+      discovered: count(foundThisShift),
+      submitted: count((j) => SUBMITTED_STATUSES.includes(j.status) && inShift(j.dateApplied, shift)),
+      pendingReview: count((j) => j.status === "Pending Review" && foundThisShift(j)),
+      interviews: count((j) => j.status === "Interview Scheduled" && changedThisShift(j)),
+      acquired: count((j) => j.status === "Hired" && changedThisShift(j)),
       waiting: count((j) => j.status === "Pending Review"),
     };
-  }, [jobs, today]);
+  }, [jobs, shift]);
 
   const byStatus = useMemo(
     () => STATUSES.map((s) => ({ status: s, count: jobs.filter((j) => j.status === s).length })),
@@ -125,23 +153,17 @@ export function DashboardView() {
         </Link>
       )}
 
-      <div className="mb-3 flex items-baseline justify-between">
-        <h2 className="text-sm font-semibold">Today</h2>
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h2 className="text-sm font-semibold">This work shift</h2>
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          {new Date(`${today}T12:00:00`).toLocaleDateString(undefined, {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-          })}{" "}
-          · Philippine time
+          {shiftLabel(dayBefore(shift))}, 9 PM &ndash; {shiftLabel(shift)}, 6 AM &middot; Philippine time
         </p>
       </div>
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard
           label="Jobs Discovered"
           value={stats.discovered}
-          hint="Found by the agent today"
+          hint="Found by the agent this shift"
           icon={CompassIcon}
           tone="bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
           loading={loading}
@@ -149,7 +171,7 @@ export function DashboardView() {
         <StatCard
           label="Applications Submitted"
           value={stats.submitted}
-          hint="Sent today"
+          hint="Sent this shift"
           icon={SendIcon}
           tone="bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
           loading={loading}
@@ -157,7 +179,7 @@ export function DashboardView() {
         <StatCard
           label="Pending Review"
           value={stats.pendingReview}
-          hint="New drafts from today"
+          hint="New drafts from this shift"
           icon={ClockIcon}
           tone="bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400"
           loading={loading}
@@ -165,7 +187,7 @@ export function DashboardView() {
         <StatCard
           label="Interviews Scheduled"
           value={stats.interviews}
-          hint="Interview invites today"
+          hint="Interview invites this shift"
           icon={CalendarIcon}
           tone="bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400"
           loading={loading}
@@ -173,7 +195,7 @@ export function DashboardView() {
         <StatCard
           label="Clients Acquired"
           value={stats.acquired}
-          hint="Hired today"
+          hint="Hired this shift"
           icon={HandshakeIcon}
           tone="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
           loading={loading}
