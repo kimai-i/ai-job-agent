@@ -56,7 +56,7 @@ export function JobsBoard({ mode }: { mode: "applications" | "discovery" | "not-
   const [status, setStatus] = useState(ALL);
   const [tab, setTab] = useState<DiscoveryTabId>(notPursued ? "archived" : "review");
   const [sort, setSort] = useState<SortState>(
-    discovery ? { key: "score", dir: "desc" } : { key: "dateApplied", dir: "desc" },
+    discovery ? { key: "dateDiscovered", dir: "desc" } : { key: "dateApplied", dir: "desc" },
   );
 
   const [form, setForm] = useState<FormState>(null);
@@ -122,6 +122,8 @@ export function JobsBoard({ mode }: { mode: "applications" | "discovery" | "not-
     const dir = sort.dir === "asc" ? 1 : -1;
     return filtered.sort((a, b) => {
       const c = compare(a, b, sort.key);
+      // Ties (e.g. jobs found the same day): most recently added first.
+      if (c === 0) return String(b.raw.created_at ?? "").localeCompare(String(a.raw.created_at ?? ""));
       // Keep empties last regardless of direction.
       if (!a[sort.key] || !b[sort.key]) return c;
       return c * dir;
