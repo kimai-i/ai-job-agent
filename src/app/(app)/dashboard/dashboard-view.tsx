@@ -75,6 +75,33 @@ export function DashboardView() {
 
   return (
     <>
+      <figure className="mb-8 rounded-xl border border-amber-200 bg-amber-50/70 px-5 py-4 dark:border-amber-500/20 dark:bg-amber-500/5">
+        <blockquote className="space-y-2 font-serif text-[15px] leading-relaxed text-zinc-800 italic dark:text-zinc-200">
+          <p>
+            <sup className="mr-1 font-sans text-[10px] text-amber-700 not-italic dark:text-amber-400">19</sup>
+            &ldquo;All this,&rdquo; David said, &ldquo;I have in writing as a result of the L
+            <span className="text-[0.8em]">ORD</span>&rsquo;s hand on me, and he enabled me to understand all the
+            details of the plan.&rdquo;
+          </p>
+          <p>
+            <sup className="mr-1 font-sans text-[10px] text-amber-700 not-italic dark:text-amber-400">20</sup>
+            David also said to Solomon his son, &ldquo;Be strong and courageous, and do the work. Do not be afraid
+            or discouraged, for the L<span className="text-[0.8em]">ORD</span> God, my God, is with you. He will not
+            fail you or forsake you until all the work for the service of the temple of the L
+            <span className="text-[0.8em]">ORD</span> is finished.
+          </p>
+          <p>
+            <sup className="mr-1 font-sans text-[10px] text-amber-700 not-italic dark:text-amber-400">21</sup>
+            The divisions of the priests and Levites are ready for all the work on the temple of God, and every
+            willing person skilled in any craft will help you in all the work. The officials and all the people will
+            obey your every command.&rdquo;
+          </p>
+        </blockquote>
+        <figcaption className="mt-3 text-xs font-semibold tracking-wide text-amber-800 uppercase dark:text-amber-300">
+          1 Chronicles 28:19&ndash;21 (NIV)
+        </figcaption>
+      </figure>
+
       <PageHeader
         title="Dashboard"
         description="An overview of every job you are tracking."
