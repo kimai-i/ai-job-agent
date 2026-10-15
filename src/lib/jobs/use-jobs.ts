@@ -127,6 +127,29 @@ export function useJobs() {
     setJobs((prev) => prev.filter((j) => j.id !== id));
   }, []);
 
+  /** Deletes several jobs at once (the table's checkboxes). Returns how many were removed. */
+  const deleteJobs = useCallback(async (ids: string[]) => {
+    const supabase = createClient();
+    const deleted = new Set<string>();
+    try {
+      // Small batches keep each request URL short.
+      for (let i = 0; i < ids.length; i += 100) {
+        const { data, error } = await supabase
+          .from(TABLE)
+          .delete()
+          .in(ID_COLUMN, ids.slice(i, i + 100))
+          .select(ID_COLUMN);
+        if (error) throw new Error(describeError(error));
+        for (const row of data ?? []) deleted.add(String((row as DbRow)[ID_COLUMN]));
+      }
+    } finally {
+      setJobs((prev) => prev.filter((j) => !deleted.has(j.id)));
+    }
+    if (deleted.size < ids.length)
+      throw new Error(`Deleted ${deleted.size} of ${ids.length}. Row Level Security may not allow deleting the others.`);
+    return deleted.size;
+  }, []);
+
   /**
    * Kim's review decision on a drafted application. Only applies if the job is
    * still in the expected status, so a stale page can't undo the agent's work.
@@ -201,5 +224,5 @@ export function useJobs() {
     return updated;
   }, [refresh]);
 
-  return { jobs, loading, error, sync, refresh, createJob, updateJob, deleteJob, reviewJob, saveDraft };
+  return { jobs, loading, error, sync, refresh, createJob, updateJob, deleteJob, deleteJobs, reviewJob, saveDraft };
 }

@@ -16,7 +16,7 @@ import { JobsTable, type SortState } from "./jobs-table";
 import { JobFormModal } from "./job-form-modal";
 import { JobDetailsPanel } from "./job-details-panel";
 import { ConfirmDialog } from "./confirm-dialog";
-import { BriefcaseIcon, CompassIcon, DownloadIcon, PlusIcon, SearchIcon } from "./icons";
+import { BriefcaseIcon, CompassIcon, DownloadIcon, PlusIcon, SearchIcon, TrashIcon } from "./icons";
 import { btn, card, input } from "./ui";
 
 const ALL = "all";
@@ -46,7 +46,7 @@ type FormState = { mode: "create" } | { mode: "edit"; job: JobApplication } | nu
  * "not-pursued") lists the screened-out and withdrawn ones on its own page.
  */
 export function JobsBoard({ mode }: { mode: "applications" | "discovery" | "not-pursued" }) {
-  const { jobs, loading, error, sync, refresh, createJob, updateJob, deleteJob, reviewJob, saveDraft } = useJobs();
+  const { jobs, loading, error, sync, refresh, createJob, updateJob, deleteJob, deleteJobs, reviewJob, saveDraft } = useJobs();
   const discovery = mode !== "applications";
   const notPursued = mode === "not-pursued";
   const tabs = notPursued ? [] : DISCOVERY_TABS.filter((t) => t.id !== "archived");
@@ -62,6 +62,8 @@ export function JobsBoard({ mode }: { mode: "applications" | "discovery" | "not-
   const [form, setForm] = useState<FormState>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<JobApplication | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   // Deep links: ?new=1 opens the add form, ?tab= picks a Discovery tab, ?status= filters.
   useEffect(() => {
@@ -125,6 +127,23 @@ export function JobsBoard({ mode }: { mode: "applications" | "discovery" | "not-
       return c * dir;
     });
   }, [tabJobs, query, platform, status, sort]);
+
+  // Only rows still shown count as selected, so a filter or tab change can't
+  // sneak hidden jobs into a bulk delete.
+  const selectedShown = visible.filter((j) => selected.has(j.id));
+
+  function toggleOne(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    setSelected(selectedShown.length === visible.length ? new Set() : new Set(visible.map((j) => j.id)));
+  }
 
   const filtersActive = query !== "" || platform !== ALL || status !== ALL;
 
@@ -197,6 +216,7 @@ export function JobsBoard({ mode }: { mode: "applications" | "discovery" | "not-
                 onClick={() => {
                   setTab(t.id);
                   setStatus(ALL);
+                  setSelected(new Set());
                 }}
                 className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${
                   active
@@ -260,6 +280,31 @@ export function JobsBoard({ mode }: { mode: "applications" | "discovery" | "not-
           </div>
         </div>
 
+        {selectedShown.length > 0 && (
+          <div className="flex flex-wrap items-center gap-3 border-b border-indigo-100 bg-indigo-50/60 px-4 py-2.5 text-sm dark:border-indigo-500/20 dark:bg-indigo-500/10">
+            <span className="font-medium text-indigo-900 dark:text-indigo-200">{selectedShown.length} selected</span>
+            {selectedShown.length < visible.length && (
+              <button
+                type="button"
+                className="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+                onClick={() => setSelected(new Set(visible.map((j) => j.id)))}
+              >
+                Select all {visible.length}
+              </button>
+            )}
+            <button
+              type="button"
+              className="font-medium text-zinc-600 hover:underline dark:text-zinc-400"
+              onClick={() => setSelected(new Set())}
+            >
+              Clear selection
+            </button>
+            <button type="button" className={`${btn.danger} ml-auto py-1.5`} onClick={() => setBulkDeleting(true)}>
+              <TrashIcon /> Delete {selectedShown.length}
+            </button>
+          </div>
+        )}
+
         {loading ? (
           <div className="space-y-3 p-4" aria-label="Loading">
             {Array.from({ length: 6 }, (_, i) => (
@@ -306,6 +351,9 @@ export function JobsBoard({ mode }: { mode: "applications" | "discovery" | "not-
             onView={(j) => setViewingId(j.id)}
             onEdit={(j) => setForm({ mode: "edit", job: j })}
             onDelete={setDeleting}
+            selected={selected}
+            onToggle={toggleOne}
+            onToggleAll={toggleAll}
           />
         )}
 
@@ -334,6 +382,29 @@ export function JobsBoard({ mode }: { mode: "applications" | "discovery" | "not-
             form.mode === "edit" ? updateJob(form.job.id, values, extras) : createJob(values, extras)
           }
           onClose={() => setForm(null)}
+        />
+      )}
+
+      {bulkDeleting && (
+        <ConfirmDialog
+          title={`Delete ${selectedShown.length} job${selectedShown.length === 1 ? "" : "s"}?`}
+          message={
+            <>
+              The selected job{selectedShown.length === 1 ? "" : "s"} will be permanently removed from your tracker.
+              This can&rsquo;t be undone.
+            </>
+          }
+          busyLabel={`Deleting ${selectedShown.length}…`}
+          onConfirm={async () => {
+            const ids = selectedShown.map((j) => j.id);
+            try {
+              await deleteJobs(ids);
+            } finally {
+              setSelected(new Set());
+              if (viewingId && ids.includes(viewingId)) setViewingId(null);
+            }
+          }}
+          onClose={() => setBulkDeleting(false)}
         />
       )}
 

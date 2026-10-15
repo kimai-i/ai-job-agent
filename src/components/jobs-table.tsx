@@ -7,6 +7,8 @@ import { JobLink } from "./job-link";
 import { ChevronDownIcon, ChevronUpIcon, PencilIcon, SortIcon, TrashIcon } from "./icons";
 import { btn } from "./ui";
 
+const checkbox = "size-4 cursor-pointer accent-indigo-600";
+
 export type SortState = { key: ColumnKey; dir: "asc" | "desc" };
 
 function scoreTone(score: number) {
@@ -72,6 +74,9 @@ export function JobsTable({
   onView,
   onEdit,
   onDelete,
+  selected,
+  onToggle,
+  onToggleAll,
 }: {
   jobs: JobApplication[];
   columns?: { key: ColumnKey; label: string }[];
@@ -80,7 +85,14 @@ export function JobsTable({
   onView: (job: JobApplication) => void;
   onEdit: (job: JobApplication) => void;
   onDelete: (job: JobApplication) => void;
+  /** Ids of the checked rows (for bulk delete). */
+  selected: Set<string>;
+  onToggle: (id: string) => void;
+  /** Checks every shown row, or unchecks them all if they're already checked. */
+  onToggleAll: () => void;
 }) {
+  const checkedCount = jobs.filter((j) => selected.has(j.id)).length;
+  const allChecked = jobs.length > 0 && checkedCount === jobs.length;
   return (
     // The table scrolls inside its own box (both directions) so the header row
     // can stay pinned at the top while rows scroll underneath it.
@@ -88,6 +100,18 @@ export function JobsTable({
       <table className="w-full min-w-[1200px] border-separate border-spacing-0 text-left text-sm">
         <thead className="sticky top-0 z-20 bg-zinc-50 text-xs text-zinc-500 uppercase shadow-[0_1px_0_0_var(--color-zinc-200)] dark:bg-zinc-900 dark:text-zinc-400 dark:shadow-[0_1px_0_0_var(--color-zinc-800)]">
           <tr>
+            <th scope="col" className="w-10 py-3 pr-0 pl-4">
+              <input
+                type="checkbox"
+                className={checkbox}
+                checked={allChecked}
+                ref={(el) => {
+                  if (el) el.indeterminate = checkedCount > 0 && !allChecked;
+                }}
+                onChange={onToggleAll}
+                aria-label={allChecked ? "Unselect all" : "Select all shown"}
+              />
+            </th>
             {columns.map((c) => {
               const active = sort.key === c.key;
               const Icon = !active ? SortIcon : sort.dir === "asc" ? ChevronUpIcon : ChevronDownIcon;
@@ -119,8 +143,22 @@ export function JobsTable({
             <tr
               key={job.id}
               onClick={() => onView(job)}
-              className="group cursor-pointer text-zinc-600 transition-colors hover:bg-indigo-50/40 dark:text-zinc-300 dark:hover:bg-zinc-800/50"
+              className={`group cursor-pointer text-zinc-600 transition-colors hover:bg-indigo-50/40 dark:text-zinc-300 dark:hover:bg-zinc-800/50 ${
+                selected.has(job.id) ? "bg-indigo-50/60 dark:bg-indigo-500/10" : ""
+              }`}
             >
+              <td
+                className="border-b border-zinc-100 py-3 pr-0 pl-4 align-middle dark:border-zinc-800"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <input
+                  type="checkbox"
+                  className={checkbox}
+                  checked={selected.has(job.id)}
+                  onChange={() => onToggle(job.id)}
+                  aria-label={`Select ${job.jobTitle || "job"}`}
+                />
+              </td>
               {columns.map((c) => (
                 <td key={c.key} className="border-b border-zinc-100 px-4 py-3 align-middle dark:border-zinc-800">
                   <Cell job={job} k={c.key} />
