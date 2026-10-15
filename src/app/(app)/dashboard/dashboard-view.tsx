@@ -9,6 +9,7 @@ import { ErrorBanner, PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/badges";
 import { ClockIcon, CompassIcon, CalendarIcon, HandshakeIcon, PlusIcon, SendIcon } from "@/components/icons";
 import { btn, card } from "@/components/ui";
+import { ScriptureBanner } from "@/components/scripture-banner";
 
 function StatCard({
   label,
@@ -43,19 +44,37 @@ function StatCard({
   );
 }
 
+/** YYYY-MM-DD in Asia/Manila (Kim's reference timezone). */
+function manilaDay(value: unknown): string {
+  const text = value == null ? "" : String(value);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+  const date = new Date(text);
+  return Number.isNaN(date.getTime()) ? "" : MANILA_DAY.format(date);
+}
+const MANILA_DAY = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" });
+
 export function DashboardView() {
   const { jobs, loading, error, refresh } = useJobs();
 
+  // The cards count today only (Manila date). The review banner below still
+  // shows every draft waiting, whenever it was found.
+  const today = manilaDay(new Date().toISOString());
   const stats = useMemo(() => {
     const count = (fn: (j: (typeof jobs)[number]) => boolean) => jobs.filter(fn).length;
+    const foundToday = (j: (typeof jobs)[number]) =>
+      manilaDay(j.raw.date_discovered ?? j.raw.created_at) === today;
+    // When a status was reached: the reply that triggered it, else the last update.
+    const changedToday = (j: (typeof jobs)[number]) =>
+      manilaDay(j.raw.last_reply_at ?? j.raw.updated_at) === today;
     return {
-      discovered: jobs.length,
-      submitted: count((j) => SUBMITTED_STATUSES.includes(j.status)),
-      pendingReview: count((j) => j.status === "Pending Review"),
-      interviews: count((j) => j.status === "Interview Scheduled"),
-      acquired: count((j) => j.status === "Hired"),
+      discovered: count(foundToday),
+      submitted: count((j) => SUBMITTED_STATUSES.includes(j.status) && j.dateApplied === today),
+      pendingReview: count((j) => j.status === "Pending Review" && foundToday(j)),
+      interviews: count((j) => j.status === "Interview Scheduled" && changedToday(j)),
+      acquired: count((j) => j.status === "Hired" && changedToday(j)),
+      waiting: count((j) => j.status === "Pending Review"),
     };
-  }, [jobs]);
+  }, [jobs, today]);
 
   const byStatus = useMemo(
     () => STATUSES.map((s) => ({ status: s, count: jobs.filter((j) => j.status === s).length })),
@@ -75,32 +94,7 @@ export function DashboardView() {
 
   return (
     <>
-      <figure className="mb-8 rounded-xl border border-amber-200 bg-amber-50/70 px-5 py-4 dark:border-amber-500/20 dark:bg-amber-500/5">
-        <blockquote className="space-y-2 font-serif text-[15px] leading-relaxed text-zinc-800 italic dark:text-zinc-200">
-          <p>
-            <sup className="mr-1 font-sans text-[10px] text-amber-700 not-italic dark:text-amber-400">19</sup>
-            &ldquo;All this,&rdquo; David said, &ldquo;I have in writing as a result of the L
-            <span className="text-[0.8em]">ORD</span>&rsquo;s hand on me, and he enabled me to understand all the
-            details of the plan.&rdquo;
-          </p>
-          <p>
-            <sup className="mr-1 font-sans text-[10px] text-amber-700 not-italic dark:text-amber-400">20</sup>
-            David also said to Solomon his son, &ldquo;Be strong and courageous, and do the work. Do not be afraid
-            or discouraged, for the L<span className="text-[0.8em]">ORD</span> God, my God, is with you. He will not
-            fail you or forsake you until all the work for the service of the temple of the L
-            <span className="text-[0.8em]">ORD</span> is finished.
-          </p>
-          <p>
-            <sup className="mr-1 font-sans text-[10px] text-amber-700 not-italic dark:text-amber-400">21</sup>
-            The divisions of the priests and Levites are ready for all the work on the temple of God, and every
-            willing person skilled in any craft will help you in all the work. The officials and all the people will
-            obey your every command.&rdquo;
-          </p>
-        </blockquote>
-        <figcaption className="mt-3 text-xs font-semibold tracking-wide text-amber-800 uppercase dark:text-amber-300">
-          1 Chronicles 28:19&ndash;21 (NIV)
-        </figcaption>
-      </figure>
+      <ScriptureBanner />
 
       <PageHeader
         title="Dashboard"
@@ -114,14 +108,14 @@ export function DashboardView() {
 
       {error && <ErrorBanner message={error} onRetry={refresh} />}
 
-      {!loading && stats.pendingReview > 0 && (
+      {!loading && stats.waiting > 0 && (
         <Link
           href="/discovery?tab=review"
           className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-4 transition hover:bg-indigo-100 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20"
         >
           <div>
             <p className="text-sm font-semibold text-indigo-900 dark:text-indigo-200">
-              {stats.pendingReview} application{stats.pendingReview === 1 ? "" : "s"} ready for your review
+              {stats.waiting} application{stats.waiting === 1 ? "" : "s"} ready for your review
             </p>
             <p className="text-sm text-indigo-800/80 dark:text-indigo-300/80">
               Open each one, read the draft, then choose Send or Withdraw.
@@ -131,11 +125,23 @@ export function DashboardView() {
         </Link>
       )}
 
+      <div className="mb-3 flex items-baseline justify-between">
+        <h2 className="text-sm font-semibold">Today</h2>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          {new Date(`${today}T12:00:00`).toLocaleDateString(undefined, {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          })}{" "}
+          · Philippine time
+        </p>
+      </div>
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard
           label="Jobs Discovered"
           value={stats.discovered}
-          hint="All jobs being tracked"
+          hint="Found by the agent today"
           icon={CompassIcon}
           tone="bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
           loading={loading}
@@ -143,7 +149,7 @@ export function DashboardView() {
         <StatCard
           label="Applications Submitted"
           value={stats.submitted}
-          hint="Applied or further along"
+          hint="Sent today"
           icon={SendIcon}
           tone="bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
           loading={loading}
@@ -151,7 +157,7 @@ export function DashboardView() {
         <StatCard
           label="Pending Review"
           value={stats.pendingReview}
-          hint="Waiting for your review"
+          hint="New drafts from today"
           icon={ClockIcon}
           tone="bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400"
           loading={loading}
@@ -159,7 +165,7 @@ export function DashboardView() {
         <StatCard
           label="Interviews Scheduled"
           value={stats.interviews}
-          hint="Status: Interview Scheduled"
+          hint="Interview invites today"
           icon={CalendarIcon}
           tone="bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400"
           loading={loading}
@@ -167,7 +173,7 @@ export function DashboardView() {
         <StatCard
           label="Clients Acquired"
           value={stats.acquired}
-          hint="Status: Hired"
+          hint="Hired today"
           icon={HandshakeIcon}
           tone="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
           loading={loading}

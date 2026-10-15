@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -105,9 +106,13 @@ function UserFooter() {
 
   return (
     <div className="flex items-center gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-800">
-      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-xs font-semibold text-zinc-700 uppercase dark:bg-zinc-800 dark:text-zinc-300">
-        {email.slice(0, 1) || "·"}
-      </div>
+      <Image
+        src="/profile.webp"
+        alt=""
+        width={32}
+        height={32}
+        className="size-8 shrink-0 rounded-full object-cover ring-1 ring-zinc-200 dark:ring-zinc-700"
+      />
       <p className="min-w-0 flex-1 truncate text-xs text-zinc-600 dark:text-zinc-400" title={email}>
         {email || "Signed in"}
       </p>
