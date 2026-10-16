@@ -125,7 +125,7 @@ export function SettingsView() {
 
         <Section title="Automation" description="What the job agent does on its own.">
           <ul className="list-disc space-y-1 pl-5 text-sm text-zinc-600 dark:text-zinc-300">
-            <li>Searches OnlineJobs.ph and LinkedIn every hour, 24 hours a day.</li>
+            <li>Searches OnlineJobs.ph, LinkedIn and VirtualStaff.ph every hour, 24 hours a day.</li>
             <li>Screens each job against your rules and drafts the cover letter for the ones that qualify.</li>
             <li>Checks for employer replies every hour and updates statuses.</li>
             <li>

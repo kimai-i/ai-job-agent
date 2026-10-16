@@ -1,6 +1,6 @@
 ---
 name: job-hunt
-description: Runs Kim's job-hunting and application workflow on OnlineJobs.ph then LinkedIn in her own Chrome (search, eligibility screening, scoring, cover letters, approval-gated submission) and records every job in the app's tracker. Use when the user says "START JOB HUNTING", asks to search or apply for jobs, or when the daily job-search task runs.
+description: Runs Kim's job-hunting and application workflow on OnlineJobs.ph, LinkedIn, then VirtualStaff.ph in her own Chrome (search, eligibility screening, scoring, cover letters, approval-gated submission) and records every job in the app's tracker. Use when the user says "START JOB HUNTING", asks to search or apply for jobs, or when the daily job-search task runs.
 ---
 
 # Job hunt
@@ -24,9 +24,9 @@ master-prompt sequence (section 33): search, screen, score, draft, show the
 
 **Scheduled daily run** (started by the scheduled task, user may be away):
 discovery, screening, scoring and drafting ONLY. Never submit, never spend OLJ
-points, never fill or send external forms. Do OnlineJobs.ph, then LinkedIn
-(the owner asked for LinkedIn to follow OnlineJobs.ph automatically in
-unattended runs). Queue every reviewed job (section 4), then end with a short
+points, never fill or send external forms, never click VirtualStaff.ph's
+"Apply Now". Do OnlineJobs.ph, then LinkedIn, then VirtualStaff.ph (the owner
+asked for all three to run automatically in unattended runs). Queue every reviewed job (section 4), then end with a short
 summary: jobs reviewed, ready for review (with match scores), needing
 information, video required, external applications, screened out. If a login,
 CAPTCHA or security check appears, stop that platform and report it.
@@ -48,6 +48,8 @@ label or mark anything, never schedule interviews.
      employer or job title, or replies to one of the application subjects. The
      Gmail connector in this app is a different (work) account: do not use it.
    - LinkedIn messages: `https://www.linkedin.com/messaging/`
+   - VirtualStaff.ph: `https://app.virtualstaff.ph/jobseeker/dashboard`, then the
+     Inbox, Job Applications and Job Offers pages in the left menu.
    If a site is signed out or shows a security check, skip it and report that.
 3. Match each new message to one watched job (employer name, job title, subject,
    OLJ conversation). If the match is uncertain, don't change any status; just
@@ -118,6 +120,15 @@ OnlineJobs.ph submission notes (learned 2026-10-13):
 - Success = the page text "Awesome, you have successfully sent the email for your job application!". Also verify on the job page, which then shows "Applied / Date Applied: <date>". Use that notice to detect jobs she has already applied to.
 - Open and send one application form at a time. A form opened in a second tab before another application was sent did not submit. If SEND EMAIL doesn't respond twice, stop and ask her to click it, then verify.
 
+VirtualStaff.ph notes (learned 2026-10-16):
+- Kim's job seeker account: `https://app.virtualstaff.ph/jobseeker/dashboard` (signed in in her Chrome). Jobs: `https://app.virtualstaff.ph/jobseeker/find-jobs`.
+- The unfiltered list is newest first (each card shows its posting date, title, Full-Time/Part-Time and PHP monthly salary), 9 cards per page with numbered pages at the bottom. Go through pages until the cards are older than the recency window, and open the relevant titles (SEO, digital marketing, ads, PPC, social media, content, WordPress, GoHighLevel, marketing VA).
+- The search box (type a keyword and press Enter) does NOT change the URL and sorts by relevance, not date, so use it only as a fallback and check every date.
+- The Filter only offers Job Type.
+- "know More" opens the job in a new tab at `https://app.virtualstaff.ph/jobseeker/job-description/<id>`: use that as the job's `link`. The page shows the employer name and verification, Role, Preferred Availability, Experience, Monthly Salary (PHP), Work Schedule, Work Hours, tasks and communication style. Close that tab when done.
+- "Apply Now" on the job page may submit straight away: never click it in a scheduled run. Applying (interactive, after Kim's "send" or live-site approval) is not mapped yet: open it only with Kim present and stop to show her the form first.
+- `platform` and `application_method`: `VirtualStaff.ph`. `rate`: the PHP amount as shown (e.g. "₱47,350.00/mo"), with the USD conversion in qualification_notes.
+
 Useful searches:
 - OnlineJobs.ph: `https://www.onlinejobs.ph/jobseekers/jobsearch?jobkeyword=<keyword>`
   (results are newest first; open each posting and verify its own date).
@@ -152,8 +163,8 @@ Status mapping (master prompt section 26 categories → tracker `status`):
 | Submission Failed | `Submission Failed` |
 
 Field rules:
-- `platform`: where the job was found: `OnlineJobs.ph` or `LinkedIn`.
-- `application_method`: OnlineJobs.ph, LinkedIn Easy Apply, Email, Google Form, or External Website.
+- `platform`: where the job was found: `OnlineJobs.ph`, `LinkedIn` or `VirtualStaff.ph`.
+- `application_method`: OnlineJobs.ph, LinkedIn Easy Apply, VirtualStaff.ph, Email, Google Form, or External Website.
 - `job_type`: one of Full-time, Part-time, Contract, Freelance, Project-based.
 - `client_acquisition`: leave unset (owner fills it in).
 - `qualification_notes`: the full JOB ELIGIBILITY REVIEW block plus the score breakdown.

@@ -1,6 +1,7 @@
 export const PLATFORMS = [
   "OnlineJobs.ph",
   "LinkedIn",
+  "VirtualStaff.ph",
   "Indeed",
   "Direct Application",
   "Other",
