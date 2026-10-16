@@ -26,7 +26,9 @@ master-prompt sequence (section 33): search, screen, score, draft, show the
 discovery, screening, scoring and drafting ONLY. Never submit, never spend OLJ
 points, never fill or send external forms, never click VirtualStaff.ph's
 "Apply Now". Do OnlineJobs.ph, then LinkedIn, then VirtualStaff.ph (the owner
-asked for all three to run automatically in unattended runs). Queue every reviewed job (section 4), then end with a short
+asked for all three to run automatically in unattended runs). Priority is in
+that order: finish OnlineJobs.ph completely first; if time runs short, cut
+VirtualStaff.ph first, then LinkedIn, never OnlineJobs.ph. Queue every reviewed job (section 4), then end with a short
 summary: jobs reviewed, ready for review (with match scores), needing
 information, video required, external applications, screened out. If a login,
 CAPTCHA or security check appears, stop that platform and report it.
