@@ -49,7 +49,8 @@ export function JobsBoard({ mode }: { mode: "applications" | "discovery" | "not-
   const { jobs, loading, error, sync, refresh, createJob, updateJob, deleteJob, deleteJobs, reviewJob, saveDraft } = useJobs();
   const discovery = mode !== "applications";
   const notPursued = mode === "not-pursued";
-  const tabs = notPursued ? [] : DISCOVERY_TABS.filter((t) => t.id !== "archived");
+  // The Ready for review / Needs action tabs belong to Job Discovery only.
+  const tabs = mode === "discovery" ? DISCOVERY_TABS.filter((t) => t.id !== "archived") : [];
 
   const [query, setQuery] = useState("");
   const [platform, setPlatform] = useState(ALL);
