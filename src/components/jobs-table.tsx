@@ -100,7 +100,7 @@ export function JobsTable({
       <table className="w-full min-w-[1200px] border-separate border-spacing-0 text-left text-sm">
         <thead className="sticky top-0 z-20 bg-zinc-50 text-xs text-zinc-500 uppercase shadow-[0_1px_0_0_var(--color-zinc-200)] dark:bg-zinc-900 dark:text-zinc-400 dark:shadow-[0_1px_0_0_var(--color-zinc-800)]">
           <tr>
-            <th scope="col" className="w-10 py-3 pr-0 pl-4">
+            <th scope="col" className="sticky left-0 z-30 w-10 bg-zinc-50 py-3 pr-3 pl-4 dark:bg-zinc-900">
               <input
                 type="checkbox"
                 className={checkbox}
@@ -148,7 +148,11 @@ export function JobsTable({
               }`}
             >
               <td
-                className="border-b border-zinc-100 py-3 pr-0 pl-4 align-middle dark:border-zinc-800"
+                className={`sticky left-0 z-10 border-b border-zinc-100 py-3 pr-3 pl-4 align-middle dark:border-zinc-800 ${
+                  selected.has(job.id)
+                    ? "bg-indigo-50 dark:bg-indigo-950"
+                    : "bg-white group-hover:bg-zinc-50 dark:bg-zinc-900 dark:group-hover:bg-zinc-800"
+                }`}
                 onClick={(e) => e.stopPropagation()}
               >
                 <input
