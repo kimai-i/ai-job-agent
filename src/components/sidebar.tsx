@@ -5,8 +5,11 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { TABLE } from "@/lib/jobs/schema";
+import { JOBS_CHANGED_EVENT } from "@/lib/jobs/use-jobs";
 import {
   BriefcaseIcon,
+  CalendarIcon,
   CompassIcon,
   DashboardIcon,
   LogOutIcon,
@@ -18,7 +21,14 @@ import {
 import { ThemeToggle } from "./theme-toggle";
 import { btn } from "./ui";
 
-const NAV: { href: string; label: string; icon: typeof DashboardIcon; children?: { href: string; label: string }[] }[] = [
+const NAV: {
+  href: string;
+  label: string;
+  icon: typeof DashboardIcon;
+  children?: { href: string; label: string }[];
+  /** Shows a red count of jobs in this status next to the label. */
+  badgeStatus?: string;
+}[] = [
   { href: "/dashboard", label: "Dashboard", icon: DashboardIcon },
   { href: "/applications", label: "Job Applications", icon: BriefcaseIcon },
   {
@@ -27,6 +37,7 @@ const NAV: { href: string; label: string; icon: typeof DashboardIcon; children?:
     icon: CompassIcon,
     children: [{ href: "/discovery/not-pursued", label: "Not pursued" }],
   },
+  { href: "/interviews", label: "Scheduled Interview", icon: CalendarIcon, badgeStatus: "Interview Scheduled" },
   { href: "/settings", label: "Settings", icon: SettingsIcon },
 ];
 
@@ -50,11 +61,40 @@ function Brand() {
   );
 }
 
+/** Number of jobs in a status, kept fresh on navigation, job changes and every minute. */
+function useStatusCount(status: string) {
+  const pathname = usePathname();
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const { count } = await createClient()
+        .from(TABLE)
+        .select("id", { count: "exact", head: true })
+        .eq("status", status);
+      if (!cancelled) setCount(count ?? 0);
+    };
+    void load();
+    const timer = setInterval(load, 60_000);
+    window.addEventListener(JOBS_CHANGED_EVENT, load);
+    window.addEventListener("focus", load);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+      window.removeEventListener(JOBS_CHANGED_EVENT, load);
+      window.removeEventListener("focus", load);
+    };
+  }, [status, pathname]);
+  return count;
+}
+
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const interviewCount = useStatusCount("Interview Scheduled");
   return (
     <nav className="flex flex-col gap-1">
-      {NAV.map(({ href, label, icon: Icon, children = [] }) => {
+      {NAV.map(({ href, label, icon: Icon, children = [], badgeStatus }) => {
+        const badge = badgeStatus ? interviewCount : 0;
         const isOn = (h: string) => pathname === h || pathname.startsWith(`${h}/`);
         // A parent stays unhighlighted while one of its sub-pages is open.
         const active = isOn(href) && !children.some((c) => isOn(c.href));
@@ -71,7 +111,19 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
               }`}
             >
               <Icon className="size-4 shrink-0" />
-              <span className="flex-1">{label}</span>
+              <span className="flex-1">
+                <span className="relative">
+                  {label}
+                  {badge > 0 && (
+                    <sup
+                      className="absolute -top-2 -right-4 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] leading-none font-bold text-white ring-2 ring-white dark:ring-zinc-900"
+                      aria-label={`${badge} scheduled`}
+                    >
+                      {badge}
+                    </sup>
+                  )}
+                </span>
+              </span>
             </Link>
             {children.map((c) => (
               <Link

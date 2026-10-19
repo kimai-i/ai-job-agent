@@ -52,6 +52,8 @@ export function JobFormModal({
   // Withdrawn / Screened Out jobs keep their "why" in rejection_reason.
   const initialReason = rawText(job, "rejection_reason");
   const [reason, setReason] = useState(initialReason);
+  const initialNotes = rawText(job, "additional_notes");
+  const [notes, setNotes] = useState(initialNotes);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,6 +88,8 @@ export function JobFormModal({
       }
     }
     if (reason !== initialReason) extras.rejection_reason = reason.trim() || null;
+    // Only sent when edited, so saving still works before the column exists.
+    if (notes !== initialNotes) extras.additional_notes = notes.trim() || null;
     try {
       await onSubmit(submitted, extras);
       onClose();
@@ -207,6 +211,20 @@ export function JobFormModal({
         </div>
         {select("status", "Status", STATUSES)}
         {select("clientAcquisition", "Client Acquisition", CLIENT_ACQUISITION, true)}
+
+        <div className="sm:col-span-2">
+          <label htmlFor="additional-notes" className={label}>
+            Additional Notes
+          </label>
+          <textarea
+            id="additional-notes"
+            rows={3}
+            className={input}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="e.g. Interview on Oct 21, 10 PM via Zoom with Sarah; prepare Google Ads examples"
+          />
+        </div>
 
         {(values.status === "Withdrawn" || values.status === "Screened Out") && (
           <div className="sm:col-span-2">

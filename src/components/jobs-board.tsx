@@ -16,7 +16,7 @@ import { JobsTable, type SortState } from "./jobs-table";
 import { JobFormModal } from "./job-form-modal";
 import { JobDetailsPanel } from "./job-details-panel";
 import { ConfirmDialog } from "./confirm-dialog";
-import { BriefcaseIcon, CompassIcon, DownloadIcon, PlusIcon, SearchIcon, TrashIcon } from "./icons";
+import { BriefcaseIcon, CalendarIcon, CompassIcon, DownloadIcon, PlusIcon, SearchIcon, TrashIcon } from "./icons";
 import { btn, card, input } from "./ui";
 
 const ALL = "all";
@@ -44,10 +44,12 @@ type FormState = { mode: "create" } | { mode: "edit"; job: JobApplication } | nu
  * Job Discovery (mode "discovery") shows everything found but not yet sent,
  * split into Ready for review / Needs action tabs. Not pursued (mode
  * "not-pursued") lists the screened-out and withdrawn ones on its own page.
+ * Scheduled Interview (mode "interviews") lists jobs at Interview Scheduled.
  */
-export function JobsBoard({ mode }: { mode: "applications" | "discovery" | "not-pursued" }) {
+export function JobsBoard({ mode }: { mode: "applications" | "discovery" | "not-pursued" | "interviews" }) {
   const { jobs, loading, error, sync, refresh, createJob, updateJob, deleteJob, deleteJobs, reviewJob, saveDraft } = useJobs();
-  const discovery = mode !== "applications";
+  const interviews = mode === "interviews";
+  const discovery = mode === "discovery" || mode === "not-pursued";
   const notPursued = mode === "not-pursued";
   // The Ready for review / Needs action tabs belong to Job Discovery only.
   const tabs = mode === "discovery" ? DISCOVERY_TABS.filter((t) => t.id !== "archived") : [];
@@ -85,9 +87,13 @@ export function JobsBoard({ mode }: { mode: "applications" | "discovery" | "not-
   const pageJobs = useMemo(
     () =>
       jobs.filter((j) =>
-        discovery ? !SUBMITTED_STATUSES.includes(j.status) : SUBMITTED_STATUSES.includes(j.status),
+        interviews
+          ? j.status === "Interview Scheduled"
+          : discovery
+            ? !SUBMITTED_STATUSES.includes(j.status)
+            : SUBMITTED_STATUSES.includes(j.status) && j.status !== "Interview Scheduled",
       ),
-    [jobs, discovery],
+    [jobs, discovery, interviews],
   );
 
   const tabCounts = useMemo(
@@ -103,9 +109,11 @@ export function JobsBoard({ mode }: { mode: "applications" | "discovery" | "not-
     () => (discovery ? pageJobs.filter((j) => (activeTab.statuses as readonly string[]).includes(j.status)) : pageJobs),
     [discovery, pageJobs, activeTab],
   );
-  const statusOptions = discovery
-    ? (activeTab.statuses as readonly string[])
-    : STATUSES.filter((s) => SUBMITTED_STATUSES.includes(s));
+  const statusOptions = interviews
+    ? ["Interview Scheduled"]
+    : discovery
+      ? (activeTab.statuses as readonly string[])
+      : STATUSES.filter((s) => SUBMITTED_STATUSES.includes(s) && s !== "Interview Scheduled");
 
   const viewing = jobs.find((j) => j.id === viewingId) ?? null;
 
@@ -157,9 +165,13 @@ export function JobsBoard({ mode }: { mode: "applications" | "discovery" | "not-
   return (
     <>
       <PageHeader
-        title={notPursued ? "Not pursued" : discovery ? "Job Discovery" : "Job Applications"}
+        title={
+          interviews ? "Scheduled Interview" : notPursued ? "Not pursued" : discovery ? "Job Discovery" : "Job Applications"
+        }
         description={
-          notPursued
+          interviews
+            ? "Employers who invited you to an interview. Open a job to see the latest message and details."
+            : notPursued
             ? "Jobs the agent screened out or you withdrew, with the reason for each."
             : discovery
               ? "Jobs the agent found that haven't been sent yet. Review each draft, then Send or Withdraw."
@@ -317,7 +329,13 @@ export function JobsBoard({ mode }: { mode: "applications" | "discovery" | "not-
         ) : visible.length === 0 ? (
           <div className="flex flex-col items-center px-6 py-16 text-center">
             <div className="flex size-12 items-center justify-center rounded-xl bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-              {discovery ? <CompassIcon className="size-6" /> : <BriefcaseIcon className="size-6" />}
+              {interviews ? (
+                <CalendarIcon className="size-6" />
+              ) : discovery ? (
+                <CompassIcon className="size-6" />
+              ) : (
+                <BriefcaseIcon className="size-6" />
+              )}
             </div>
             {filtersActive ? (
               <>
@@ -333,6 +351,13 @@ export function JobsBoard({ mode }: { mode: "applications" | "discovery" | "not-
                 >
                   Clear filters
                 </button>
+              </>
+            ) : interviews ? (
+              <>
+                <p className="mt-4 text-sm font-medium">No interviews scheduled yet</p>
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                  When an employer invites you to an interview, the job moves here automatically.
+                </p>
               </>
             ) : discovery ? (
               <p className="mt-4 text-sm font-medium">{activeTab.empty}</p>

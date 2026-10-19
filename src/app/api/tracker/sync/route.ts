@@ -52,6 +52,7 @@ const WRITABLE = new Set([
   "last_reply_at",
   "last_reply_channel",
   "last_reply_summary",
+  "additional_notes",
 ]);
 
 type Row = Record<string, unknown>;

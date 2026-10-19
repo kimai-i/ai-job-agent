@@ -20,6 +20,8 @@ function describeError(error: PostgrestError | Error): string {
       return "Permission denied by Row Level Security. Check the table's RLS policies.";
     if (error.code === "42P01" || error.code === "PGRST205")
       return "The job_applications table could not be found via the Data API.";
+    if ((error.code === "42703" || error.code === "PGRST204") && error.message.includes("additional_notes"))
+      return "Additional Notes needs a one-time database update: run supabase/additional-notes.sql in the Supabase SQL Editor.";
     if (error.code === "42703" || error.code === "PGRST204")
       return `Column mismatch: ${error.message}. The column mapping in src/lib/jobs/schema.ts needs updating.`;
     if (error.code === "23505") return "This job link is already in your tracker.";
@@ -28,6 +30,8 @@ function describeError(error: PostgrestError | Error): string {
   }
   return error.message;
 }
+
+export const JOBS_CHANGED_EVENT = "jobs-changed";
 
 export type ReviewDecision = "send" | "withdraw" | "cancel-send" | "mark-applied";
 
@@ -84,6 +88,11 @@ export function useJobs() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data load
     void refresh();
   }, [refresh]);
+
+  // Lets the sidebar refresh its counts (e.g. the Scheduled Interview badge).
+  useEffect(() => {
+    window.dispatchEvent(new Event(JOBS_CHANGED_EVENT));
+  }, [jobs]);
 
   const createJob = useCallback(async (values: JobFormValues, extras: DbRow = {}) => {
     const supabase = createClient();
