@@ -77,6 +77,7 @@ export const ChevronDownIcon = make(["m6 9 6 6 6-6"]);
 export const SortIcon = make(["m7 15 5 5 5-5", "m7 9 5-5 5 5"]);
 export const SendIcon = make(["M22 2 11 13", "M22 2 15 22l-4-9-9-4z"]);
 export const ClockIcon = make(["M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z", "M12 7v5l3 2"]);
+export const MailIcon = make(["M4 6h16v12H4z", "m4 7 8 6 8-6"]);
 export const CalendarIcon = make(["M4 5h16v16H4z", "M16 3v4", "M8 3v4", "M4 11h16"]);
 export const HandshakeIcon = make([
   "m11 17 2 2a1 1 0 1 0 3-3",

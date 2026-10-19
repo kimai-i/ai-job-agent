@@ -10,6 +10,7 @@ import { JOBS_CHANGED_EVENT } from "@/lib/jobs/use-jobs";
 import {
   BriefcaseIcon,
   CalendarIcon,
+  MailIcon,
   CompassIcon,
   DashboardIcon,
   LogOutIcon,
@@ -26,8 +27,8 @@ const NAV: {
   label: string;
   icon: typeof DashboardIcon;
   children?: { href: string; label: string }[];
-  /** Shows a red count of jobs in this status next to the label. */
-  badgeStatus?: string;
+  /** Shows a count of jobs in this status next to the label, in this colour. */
+  badge?: { status: string; tone: string };
 }[] = [
   { href: "/dashboard", label: "Dashboard", icon: DashboardIcon },
   { href: "/applications", label: "Job Applications", icon: BriefcaseIcon },
@@ -37,7 +38,18 @@ const NAV: {
     icon: CompassIcon,
     children: [{ href: "/discovery/not-pursued", label: "Not pursued" }],
   },
-  { href: "/interviews", label: "Scheduled Interview", icon: CalendarIcon, badgeStatus: "Interview Scheduled" },
+  {
+    href: "/interviews",
+    label: "Scheduled Interview",
+    icon: CalendarIcon,
+    badge: { status: "Interview Scheduled", tone: "bg-rose-600" },
+  },
+  {
+    href: "/replies",
+    label: "Employer Replied",
+    icon: MailIcon,
+    badge: { status: "Employer Replied", tone: "bg-emerald-600" },
+  },
   { href: "/settings", label: "Settings", icon: SettingsIcon },
 ];
 
@@ -61,18 +73,22 @@ function Brand() {
   );
 }
 
-/** Number of jobs in a status, kept fresh on navigation, job changes and every minute. */
-function useStatusCount(status: string) {
+const BADGE_STATUSES = NAV.flatMap((n) => (n.badge ? [n.badge.status] : []));
+
+/** Jobs per badge status, kept fresh on navigation, job changes and every minute. */
+function useStatusCounts() {
   const pathname = usePathname();
-  const [count, setCount] = useState(0);
+  const [counts, setCounts] = useState<Record<string, number>>({});
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const { count } = await createClient()
-        .from(TABLE)
-        .select("id", { count: "exact", head: true })
-        .eq("status", status);
-      if (!cancelled) setCount(count ?? 0);
+      const supabase = createClient();
+      const results = await Promise.all(
+        BADGE_STATUSES.map((status) =>
+          supabase.from(TABLE).select("id", { count: "exact", head: true }).eq("status", status),
+        ),
+      );
+      if (!cancelled) setCounts(Object.fromEntries(BADGE_STATUSES.map((s, i) => [s, results[i].count ?? 0])));
     };
     void load();
     const timer = setInterval(load, 60_000);
@@ -84,17 +100,17 @@ function useStatusCount(status: string) {
       window.removeEventListener(JOBS_CHANGED_EVENT, load);
       window.removeEventListener("focus", load);
     };
-  }, [status, pathname]);
-  return count;
+  }, [pathname]);
+  return counts;
 }
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
-  const interviewCount = useStatusCount("Interview Scheduled");
+  const counts = useStatusCounts();
   return (
     <nav className="flex flex-col gap-1">
-      {NAV.map(({ href, label, icon: Icon, children = [], badgeStatus }) => {
-        const badge = badgeStatus ? interviewCount : 0;
+      {NAV.map(({ href, label, icon: Icon, children = [], badge: badgeDef }) => {
+        const badge = badgeDef ? (counts[badgeDef.status] ?? 0) : 0;
         const isOn = (h: string) => pathname === h || pathname.startsWith(`${h}/`);
         // A parent stays unhighlighted while one of its sub-pages is open.
         const active = isOn(href) && !children.some((c) => isOn(c.href));
@@ -116,8 +132,8 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
                   {label}
                   {badge > 0 && (
                     <sup
-                      className="absolute -top-2 -right-4 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] leading-none font-bold text-white ring-2 ring-white dark:ring-zinc-900"
-                      aria-label={`${badge} scheduled`}
+                      className={`absolute -top-2 -right-4 flex h-4 min-w-4 items-center justify-center rounded-full ${badgeDef?.tone} px-1 text-[10px] leading-none font-bold text-white ring-2 ring-white dark:ring-zinc-900`}
+                      aria-label={`${badge} ${badgeDef?.status}`}
                     >
                       {badge}
                     </sup>

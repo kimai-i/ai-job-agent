@@ -75,8 +75,11 @@ export const NOT_PURSUED_COLUMNS: { key: ColumnKey; label: string }[] = DISCOVER
   c.key === "status" ? [c, { key: "reason" as const, label: "Reason" }] : [c],
 );
 
-/** Scheduled Interview board: the list view with Additional Notes instead of Client Acquisition. */
-export const INTERVIEW_COLUMNS: { key: ColumnKey; label: string }[] = LIST_COLUMNS.map((c) =>
+/**
+ * Table columns on Job Applications and the status boards: the list view with
+ * Additional Notes in place of Client Acquisition (still in the form and CSV).
+ */
+export const BOARD_COLUMNS: { key: ColumnKey; label: string }[] = LIST_COLUMNS.map((c) =>
   c.key === "clientAcquisition" ? { key: "notes" as const, label: "Additional Notes" } : c,
 );
 
