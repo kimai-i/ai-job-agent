@@ -39,6 +39,7 @@ function Cell({ job, k }: { job: JobApplication; k: ColumnKey }) {
         </span>
       );
     case "reason":
+    case "notes":
       return v ? (
         <span className="block max-w-[22rem] truncate" title={v}>
           {v}

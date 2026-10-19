@@ -5,6 +5,7 @@ import { useJobs } from "@/lib/jobs/use-jobs";
 import { DISCOVERY_TABS, PLATFORMS, STATUSES, SUBMITTED_STATUSES, type DiscoveryTabId } from "@/lib/jobs/options";
 import {
   DISCOVERY_COLUMNS,
+  INTERVIEW_COLUMNS,
   LIST_COLUMNS,
   NOT_PURSUED_COLUMNS,
   type ColumnKey,
@@ -123,7 +124,7 @@ export function JobsBoard({ mode }: { mode: "applications" | "discovery" | "not-
       if (platform !== ALL && j.platform !== platform) return false;
       if (status !== ALL && j.status !== status) return false;
       if (!q) return true;
-      return [j.jobTitle, j.clientName, j.platform, j.link, j.rate, j.timeZone, j.jobType, j.status]
+      return [j.jobTitle, j.clientName, j.platform, j.link, j.rate, j.timeZone, j.jobType, j.status, j.notes]
         .join(" ")
         .toLowerCase()
         .includes(q);
@@ -373,7 +374,15 @@ export function JobsBoard({ mode }: { mode: "applications" | "discovery" | "not-
         ) : (
           <JobsTable
             jobs={visible}
-            columns={discovery ? (tab === "archived" ? NOT_PURSUED_COLUMNS : DISCOVERY_COLUMNS) : LIST_COLUMNS}
+            columns={
+              interviews
+                ? INTERVIEW_COLUMNS
+                : discovery
+                  ? tab === "archived"
+                    ? NOT_PURSUED_COLUMNS
+                    : DISCOVERY_COLUMNS
+                  : LIST_COLUMNS
+            }
             sort={sort}
             onSort={toggleSort}
             onView={(j) => setViewingId(j.id)}
