@@ -82,6 +82,9 @@ function ForgotPasswordForm({ initialEmail, onBack }: { initialEmail: string; on
   );
 }
 
+/** The last email that signed in on this browser, so the form is pre-filled next time. */
+const LAST_EMAIL_KEY = "ai-job-agent:last-email";
+
 export function LoginForm() {
   const router = useRouter();
   const [mode, setMode] = useState<"signin" | "forgot">("signin");
@@ -96,6 +99,12 @@ export function LoginForm() {
     const key = new URLSearchParams(window.location.search).get("notice");
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time read of the URL on mount
     if (key && NOTICES[key]) setNotice(NOTICES[key]);
+    try {
+      const saved = window.localStorage.getItem(LAST_EMAIL_KEY);
+      if (saved) setEmail(saved);
+    } catch {
+      // Storage can be blocked (private window); the field just starts empty.
+    }
   }, []);
 
   async function signIn(e: FormEvent) {
@@ -117,6 +126,11 @@ export function LoginForm() {
       }
       setBusy(false);
       return;
+    }
+    try {
+      window.localStorage.setItem(LAST_EMAIL_KEY, email.trim());
+    } catch {
+      // Not remembering the email is harmless.
     }
     router.replace("/dashboard");
     router.refresh();
